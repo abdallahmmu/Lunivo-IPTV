@@ -35,7 +35,8 @@ export function isMixedContentBlocked(serverUrl: string): boolean {
 
 /** True when this page itself is served over https — most IPTV panels are http-only, so connecting from here would hit mixed-content blocking. */
 export function isRunningOverHttps(): boolean {
-  return typeof window !== 'undefined' && window.location.protocol === 'https:';
+  return false
+  // return typeof window !== 'undefined' && window.location.protocol === 'https:';
 }
 
 /**
