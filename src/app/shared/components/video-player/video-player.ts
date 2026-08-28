@@ -13,6 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Capacitor } from '@capacitor/core';
 import Hls from 'hls.js';
 import { AppError } from '../../../core/models/common.models';
 import { PlaybackSource } from '../../../core/services/stream.service';
@@ -26,6 +27,17 @@ export const SEEK_STEP_SECONDS = 10;
 const NEXT_UP_THRESHOLD_SECS = 15;
 const ASPECT_RATIO_STORAGE_KEY = 'video-aspect-ratio';
 const PLAYBACK_RATE_STORAGE_KEY = 'video-playback-rate';
+
+/**
+ * A direct `<video src>` load bypasses CapacitorHttp entirely (it only patches fetch/XHR, not
+ * media-element resource loading), and Android's WebView mixed-content policy can still block
+ * an http:// stream on an https-origin page even with allowMixedContent set. Relaying through a
+ * loopback server sidesteps this: 127.0.0.1 is a trustworthy origin per the mixed-content spec,
+ * and LocalVideoRelayServer (android/.../MainActivity.java) fetches the real stream via native
+ * networking, forwarding Range requests both ways so seeking still works normally. HLS playback
+ * is unaffected — hls.js does its own fetching, which CapacitorHttp already covers.
+ */
+const ANDROID_VIDEO_RELAY_PORT = 8098;
 
 export interface QualityLevel {
   /** hls.js level index; -1 is reserved for "Auto" (ABR). */
@@ -256,7 +268,7 @@ export class VideoPlayer implements OnDestroy {
         return;
       }
     } else {
-      video.src = source.url;
+      video.src = this.directVideoSrc(source.url);
       // Embedded WebVTT tracks in an MP4/MKV surface here — most rips from this provider use
       // hardsubs (baked into the video image) rather than a selectable track, so this is
       // usually empty; it lights up honestly whenever a file actually has one.
@@ -284,6 +296,16 @@ export class VideoPlayer implements OnDestroy {
         // Autoplay can be blocked by the browser — the user presses play manually.
       });
     }
+  }
+
+  /** See ANDROID_VIDEO_RELAY_PORT above — routes direct (non-HLS) sources through the local
+   *  relay only on Android native, where a <video src> load can still hit mixed-content
+   *  blocking despite allowMixedContent. Untouched everywhere else (web, iOS, HLS playback). */
+  private directVideoSrc(url: string): string {
+    if (Capacitor.getPlatform() === 'android') {
+      return `http://127.0.0.1:${ANDROID_VIDEO_RELAY_PORT}/relay?url=${encodeURIComponent(url)}`;
+    }
+    return url;
   }
 
   private destroyHls(): void {
