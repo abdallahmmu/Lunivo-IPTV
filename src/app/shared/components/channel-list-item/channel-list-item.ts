@@ -11,16 +11,16 @@ import { ImageFallbackDirective } from '../../directives/image-fallback.directiv
       type="button"
       (click)="activate.emit()"
       class="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition"
-      [class]="active() ? 'bg-brand-primary/15 ring-1 ring-brand-primary/40' : 'hover:bg-brand-deep-800/70'"
+      [class]="active() ? 'bg-brand-sky/15 ring-1 ring-brand-sky/40' : 'hover:bg-brand-violet/70'"
     >
-      <span class="w-7 shrink-0 text-right text-xs tabular-nums text-brand-deep-500">{{ channelNumber() }}</span>
-      <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand-deep-800">
+      <span class="w-7 shrink-0 text-right text-xs tabular-nums text-brand-sky">{{ channelNumber() }}</span>
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand-violet">
         <img [src]="logo() || placeholder" appImageFallback="logo" [alt]="name()" loading="lazy" class="h-full w-full object-contain p-1" />
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium" [class]="active() ? 'text-brand-cream' : 'text-brand-deep-200'">{{ name() }}</p>
+        <p class="truncate text-sm font-medium text-brand-cyan">{{ name() }}</p>
         @if (nowTitle()) {
-          <p class="truncate text-xs text-brand-deep-400">{{ nowTitle() }}</p>
+          <p class="truncate text-xs text-brand-sky">{{ nowTitle() }}</p>
         }
       </div>
       <app-favorite-button

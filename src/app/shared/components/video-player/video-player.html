@@ -1,6 +1,6 @@
 <div
   #container
-  class="group/player relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-brand-deep-950 outline-none"
+  class="group/player relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-brand-primary outline-none"
   tabindex="0"
   (keydown)="onKeydown($event)"
   (mousemove)="wakeControls()"
@@ -25,33 +25,33 @@
   ></video>
 
   @if (!source()) {
-    <div class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-brand-deep-500">
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-brand-sky">
       No stream selected
     </div>
   }
 
   @if (buffering() && !error()) {
     <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <div class="h-10 w-10 animate-spin rounded-full border-2 border-brand-cream/20 border-t-white"></div>
+      <div class="h-10 w-10 animate-spin rounded-full border-2 border-brand-cyan/20 border-t-brand-secondary"></div>
     </div>
   }
 
   @if (error(); as err) {
-    <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-brand-deep-950/90 px-6 text-center" (click)="$event.stopPropagation()">
-      <p class="max-w-sm text-sm text-brand-deep-200">{{ err.message }}</p>
+    <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-brand-primary/90 px-6 text-center" (click)="$event.stopPropagation()">
+      <p class="max-w-sm text-sm text-brand-cyan">{{ err.message }}</p>
       @if (err.code === 'not_supported' && source()) {
         <div class="flex gap-2">
           <a
             [href]="source()!.url"
             target="_blank"
             rel="noopener"
-            class="rounded-full bg-brand-cream px-4 py-1.5 text-xs font-medium text-brand-deep-900 hover:bg-brand-deep-200"
+            class="rounded-full bg-brand-cyan px-4 py-1.5 text-xs font-medium text-brand-primary hover:bg-white"
             >Open stream URL</a
           >
           <button
             type="button"
             (click)="copyStreamUrl()"
-            class="rounded-full border border-brand-deep-600 px-4 py-1.5 text-xs font-medium text-brand-deep-200 hover:border-brand-deep-400"
+            class="rounded-full border border-brand-violet px-4 py-1.5 text-xs font-medium text-brand-cyan hover:border-brand-sky"
           >
             Copy link
           </button>
@@ -61,14 +61,14 @@
   }
 
   <div
-    class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-brand-deep-950/70 to-transparent p-4 opacity-0 transition"
+    class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-brand-primary/70 to-transparent p-4 opacity-0 transition"
     [class.opacity-100]="showControls()"
   >
     @if (closable()) {
       <button
         type="button"
         (click)="$event.stopPropagation(); closed.emit()"
-        class="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-brand-deep-950/50 text-brand-cream hover:bg-brand-deep-950/70"
+        class="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/50 text-brand-cyan hover:bg-brand-primary/70"
         aria-label="Close player"
         matTooltip="Close player"
       >
@@ -80,13 +80,13 @@
 
     @if (title(); as t) {
       <div class="text-right">
-        <p class="text-sm font-medium text-brand-cream">{{ t }}</p>
+        <p class="text-sm font-medium text-brand-cyan">{{ t }}</p>
         @if (subtitle(); as s) {
-          <p class="text-xs text-brand-deep-300">{{ s }}</p>
+          <p class="text-xs text-brand-cyan">{{ s }}</p>
         }
         @if (isLive()) {
-          <span class="mt-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-brand-cream">
-            <span class="h-1.5 w-1.5 rounded-full bg-brand-cream"></span>LIVE
+          <span class="mt-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-brand-cyan">
+            <span class="h-1.5 w-1.5 rounded-full bg-brand-cyan"></span>LIVE
           </span>
         }
       </div>
@@ -95,26 +95,26 @@
 
   @if (nextUpCountdown(); as secs) {
     <div
-      class="pointer-events-auto absolute bottom-24 right-4 z-10 flex items-center gap-3 rounded-xl border border-brand-deep-700 bg-brand-deep-900/95 p-3 pr-4 shadow-2xl backdrop-blur"
+      class="pointer-events-auto absolute bottom-24 right-4 z-10 flex items-center gap-3 rounded-xl border border-brand-violet bg-brand-primary/95 p-3 pr-4 shadow-2xl backdrop-blur"
       (click)="$event.stopPropagation()"
     >
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-xs font-bold tabular-nums text-brand-primary">
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary/15 text-xs font-bold tabular-nums text-brand-secondary">
         {{ secs }}
       </div>
       <div class="flex flex-col">
-        <p class="text-xs font-medium text-brand-cream">Next episode</p>
+        <p class="text-xs font-medium text-brand-cyan">Next episode</p>
         <div class="mt-1 flex gap-2">
           <button
             type="button"
             (click)="playNextNow()"
-            class="rounded-full bg-brand-primary px-3 py-1 text-[11px] font-semibold text-brand-cream hover:brightness-110"
+            class="rounded-full bg-brand-secondary px-3 py-1 text-[11px] font-semibold text-brand-primary hover:brightness-110"
           >
             Play now
           </button>
           <button
             type="button"
             (click)="dismissNextUp()"
-            class="rounded-full border border-brand-deep-600 px-3 py-1 text-[11px] text-brand-deep-300 hover:border-brand-deep-400"
+            class="rounded-full border border-brand-violet px-3 py-1 text-[11px] text-brand-cyan hover:border-brand-sky"
           >
             Dismiss
           </button>
@@ -125,25 +125,25 @@
 
   @if (showStats()) {
     <div
-      class="pointer-events-auto absolute left-4 top-16 z-10 flex flex-col gap-1 rounded-lg border border-brand-deep-700 bg-brand-deep-950/90 px-3 py-2 font-mono text-[11px] text-brand-deep-200 backdrop-blur"
+      class="pointer-events-auto absolute left-4 top-16 z-10 flex flex-col gap-1 rounded-lg border border-brand-violet bg-brand-primary/90 px-3 py-2 font-mono text-[11px] text-brand-cyan backdrop-blur"
       (click)="$event.stopPropagation()"
     >
       @let s = playbackStats();
-      <p>Resolution: <span class="text-brand-cream">{{ s.resolution }}</span></p>
-      <p>Bitrate: <span class="text-brand-cream">{{ s.bitrate }}</span></p>
-      <p>Dropped frames: <span class="text-brand-cream">{{ s.droppedFrames }}</span></p>
-      <p>Buffer ahead: <span class="text-brand-cream">{{ s.bufferAhead }}</span></p>
-      <p>Speed: <span class="text-brand-cream">{{ s.rate }}</span></p>
+      <p>Resolution: <span class="text-brand-cyan">{{ s.resolution }}</span></p>
+      <p>Bitrate: <span class="text-brand-cyan">{{ s.bitrate }}</span></p>
+      <p>Dropped frames: <span class="text-brand-cyan">{{ s.droppedFrames }}</span></p>
+      <p>Buffer ahead: <span class="text-brand-cyan">{{ s.bufferAhead }}</span></p>
+      <p>Speed: <span class="text-brand-cyan">{{ s.rate }}</span></p>
     </div>
   }
 
   <div
-    class="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-linear-to-t from-brand-deep-950/85 to-transparent p-3 opacity-0 transition"
+    class="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-linear-to-t from-brand-primary/85 to-transparent p-3 opacity-0 transition"
     [class.opacity-100]="showControls()"
     (click)="$event.stopPropagation()"
   >
     @if (!isLive()) {
-      <div class="flex items-center gap-2 text-xs tabular-nums text-brand-deep-300">
+      <div class="flex items-center gap-2 text-xs tabular-nums text-brand-cyan">
         <span class="w-10 text-right">{{ currentTime() | clockTime }}</span>
         <input
           type="range"
@@ -169,7 +169,7 @@
     }
 
     <div class="flex items-center gap-3">
-      <button type="button" (click)="togglePlay()" class="text-brand-cream" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [matTooltip]="playing() ? 'Pause' : 'Play'">
+      <button type="button" (click)="togglePlay()" class="text-brand-cyan" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [matTooltip]="playing() ? 'Pause' : 'Play'">
         @if (playing()) {
           <svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
         } @else {
@@ -178,17 +178,17 @@
       </button>
 
       @if (!isLive()) {
-        <button type="button" (click)="seekBy(-seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [matTooltip]="'Back ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(-seekStep)" class="relative text-brand-cyan" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [matTooltip]="'Back ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
-        <button type="button" (click)="seekBy(seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [matTooltip]="'Forward ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(seekStep)" class="relative text-brand-cyan" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [matTooltip]="'Forward ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5 -scale-x-100" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
       }
 
-      <button type="button" (click)="toggleMute()" [class]="volume() > 1 ? 'text-brand-mint' : 'text-brand-cream'" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [matTooltip]="muted() ? 'Unmute' : 'Mute'">
+      <button type="button" (click)="toggleMute()" [class]="volume() > 1 ? 'text-brand-sky' : 'text-brand-cyan'" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [matTooltip]="muted() ? 'Unmute' : 'Mute'">
         @if (muted() || volume() === 0) {
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M16.5 12 21 7.5l-1.5-1.5-4.5 4.5-4.5-4.5L9 7.5l4.5 4.5L9 16.5 10.5 18l4.5-4.5 4.5 4.5 1.5-1.5z" /></svg>
         } @else {
@@ -209,19 +209,19 @@
           matTooltip="Volume — past 100% boosts audio"
         />
         <!-- Marks the 100% boundary; the second half of the track is the 100–200% boost range. -->
-        <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-brand-cream/40"></div>
+        <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-brand-cyan/40"></div>
       </div>
 
       <span class="flex-1"></span>
 
       @if (hasNext()) {
-        <button type="button" (click)="nextEpisode.emit()" class="text-brand-cream" aria-label="Next episode" matTooltip="Next episode">
+        <button type="button" (click)="nextEpisode.emit()" class="text-brand-cyan" aria-label="Next episode" matTooltip="Next episode">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M6 5v14l10-7zM18 5v14h-2V5z" /></svg>
         </button>
       }
 
       @if (showEpisodesButton()) {
-        <button type="button" (click)="episodesToggle.emit()" class="text-brand-cream" aria-label="Episodes" matTooltip="Episodes">
+        <button type="button" (click)="episodesToggle.emit()" class="text-brand-cyan" aria-label="Episodes" matTooltip="Episodes">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="10" width="18" height="4" rx="1" /><rect x="3" y="16" width="18" height="4" rx="1" />
           </svg>
@@ -233,7 +233,7 @@
           <button
             type="button"
             (click)="toggleSubtitleMenu()"
-            class="flex items-center gap-1 text-brand-cream"
+            class="flex items-center gap-1 text-brand-cyan"
             aria-label="Subtitles"
             matTooltip="Subtitles"
           >
@@ -243,12 +243,12 @@
           </button>
 
           @if (showSubtitleMenu()) {
-            <div class="absolute bottom-full right-0 mb-2 w-32 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+            <div class="absolute bottom-full right-0 mb-2 w-32 overflow-hidden rounded-lg border border-brand-violet bg-brand-primary/95 py-1 shadow-xl backdrop-blur">
               <button
                 type="button"
                 (click)="setSubtitleTrack(null)"
-                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                [class]="activeSubtitleId() === null ? 'text-brand-primary' : 'text-brand-deep-200'"
+                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                [class]="activeSubtitleId() === null ? 'text-brand-sky' : 'text-brand-cyan'"
               >
                 Off
               </button>
@@ -256,8 +256,8 @@
                 <button
                   type="button"
                   (click)="setSubtitleTrack(track.id)"
-                  class="block w-full truncate px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                  [class]="activeSubtitleId() === track.id ? 'text-brand-primary' : 'text-brand-deep-200'"
+                  class="block w-full truncate px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                  [class]="activeSubtitleId() === track.id ? 'text-brand-sky' : 'text-brand-cyan'"
                 >
                   {{ track.label }}
                 </button>
@@ -272,7 +272,7 @@
           <button
             type="button"
             (click)="toggleQualityMenu()"
-            class="flex items-center gap-1 text-brand-cream"
+            class="flex items-center gap-1 text-brand-cyan"
             aria-label="Video quality"
             matTooltip="Video quality"
           >
@@ -285,12 +285,12 @@
           </button>
 
           @if (showQualityMenu()) {
-            <div class="absolute bottom-full right-0 mb-2 w-28 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+            <div class="absolute bottom-full right-0 mb-2 w-28 overflow-hidden rounded-lg border border-brand-violet bg-brand-primary/95 py-1 shadow-xl backdrop-blur">
               <button
                 type="button"
                 (click)="setQuality(-1)"
-                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                [class]="currentLevelIndex() === -1 ? 'text-brand-primary' : 'text-brand-deep-200'"
+                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                [class]="currentLevelIndex() === -1 ? 'text-brand-sky' : 'text-brand-cyan'"
               >
                 Auto
               </button>
@@ -298,8 +298,8 @@
                 <button
                   type="button"
                   (click)="setQuality(level.index)"
-                  class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                  [class]="currentLevelIndex() === level.index ? 'text-brand-primary' : 'text-brand-deep-200'"
+                  class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                  [class]="currentLevelIndex() === level.index ? 'text-brand-sky' : 'text-brand-cyan'"
                 >
                   {{ level.label }}
                 </button>
@@ -314,7 +314,7 @@
           <button
             type="button"
             (click)="toggleSpeedMenu()"
-            class="flex items-center gap-1 text-brand-cream"
+            class="flex items-center gap-1 text-brand-cyan"
             aria-label="Playback speed"
             matTooltip="Playback speed"
           >
@@ -325,13 +325,13 @@
           </button>
 
           @if (showSpeedMenu()) {
-            <div class="absolute bottom-full right-0 mb-2 w-20 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+            <div class="absolute bottom-full right-0 mb-2 w-20 overflow-hidden rounded-lg border border-brand-violet bg-brand-primary/95 py-1 shadow-xl backdrop-blur">
               @for (rate of playbackRates; track rate) {
                 <button
                   type="button"
                   (click)="setPlaybackRate(rate)"
-                  class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                  [class]="playbackRate() === rate ? 'text-brand-primary' : 'text-brand-deep-200'"
+                  class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                  [class]="playbackRate() === rate ? 'text-brand-sky' : 'text-brand-cyan'"
                 >
                   {{ rate }}×
                 </button>
@@ -345,7 +345,7 @@
         <button
           type="button"
           (click)="toggleAspectMenu()"
-          class="flex items-center gap-1 text-brand-cream"
+          class="flex items-center gap-1 text-brand-cyan"
           aria-label="Aspect ratio"
           matTooltip="Aspect ratio"
         >
@@ -356,13 +356,13 @@
         </button>
 
         @if (showAspectMenu()) {
-          <div class="absolute bottom-full right-0 mb-2 w-40 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+          <div class="absolute bottom-full right-0 mb-2 w-40 overflow-hidden rounded-lg border border-brand-violet bg-brand-primary/95 py-1 shadow-xl backdrop-blur">
             @for (option of aspectRatioOptions; track option.id) {
               <button
                 type="button"
                 (click)="setAspectRatio(option)"
-                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
-                [class]="selectedAspectRatio().id === option.id ? 'text-brand-primary' : 'text-brand-deep-200'"
+                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-violet"
+                [class]="selectedAspectRatio().id === option.id ? 'text-brand-sky' : 'text-brand-cyan'"
               >
                 {{ option.label }}
               </button>
@@ -374,7 +374,7 @@
       <button
         type="button"
         (click)="toggleStats()"
-        [class]="showStats() ? 'text-brand-primary' : 'text-brand-cream'"
+        [class]="showStats() ? 'text-brand-sky' : 'text-brand-cyan'"
         aria-label="Playback stats"
         matTooltip="Playback stats"
       >
@@ -384,13 +384,13 @@
       </button>
 
       @if (pipSupported) {
-        <button type="button" (click)="togglePip()" class="text-brand-cream" aria-label="Picture in picture" matTooltip="Picture in picture">
+        <button type="button" (click)="togglePip()" class="text-brand-cyan" aria-label="Picture in picture" matTooltip="Picture in picture">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="14" rx="1.5" /><rect x="12" y="11" width="7" height="5" rx="1" fill="currentColor" stroke="none" />
           </svg>
         </button>
       }
-      <button type="button" (click)="toggleFullscreen()" class="text-brand-cream" aria-label="Fullscreen" matTooltip="Fullscreen">
+      <button type="button" (click)="toggleFullscreen()" class="text-brand-cyan" aria-label="Fullscreen" matTooltip="Fullscreen">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
         </svg>

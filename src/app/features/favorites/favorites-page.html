@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4">
-  <h1 class="text-xl font-semibold text-brand-cream">Favorites</h1>
+  <h1 class="text-xl font-semibold text-brand-cyan">Favorites</h1>
 
   <div class="flex gap-1.5 text-sm">
     @for (t of tabs; track t.key) {
@@ -7,7 +7,7 @@
         type="button"
         (click)="tab.set(t.key)"
         class="rounded-full px-4 py-1.5 font-medium transition"
-        [class]="tab() === t.key ? 'bg-brand-primary text-brand-cream' : 'bg-brand-deep-800 text-brand-deep-300 hover:bg-brand-deep-700'"
+        [class]="tab() === t.key ? 'bg-brand-secondary text-brand-primary' : 'bg-brand-violet/60 text-brand-cyan hover:bg-brand-violet'"
       >
         {{ t.label }}
       </button>

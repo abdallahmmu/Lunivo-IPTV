@@ -4,8 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   selector: 'app-progress-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="h-1 w-full overflow-hidden rounded-full bg-brand-cream/20">
-      <div class="h-full rounded-full bg-brand-primary" [style.width.%]="percent()"></div>
+    <div class="h-1 w-full overflow-hidden rounded-full bg-brand-cyan/20">
+      <div class="h-full rounded-full bg-brand-secondary" [style.width.%]="percent()"></div>
     </div>
   `,
 })

@@ -1,14 +1,14 @@
 <div class="flex flex-col gap-8">
   <div class="flex items-center justify-between">
-    <h1 class="text-xl font-semibold text-brand-cream">History</h1>
+    <h1 class="text-xl font-semibold text-brand-cyan">History</h1>
     @if (history.all().length) {
-      <button type="button" (click)="clearAll()" class="text-sm text-brand-deep-400 hover:text-red-400">Clear all</button>
+      <button type="button" (click)="clearAll()" class="text-sm text-brand-sky hover:text-red-400">Clear all</button>
     }
   </div>
 
   @if (history.continueWatching().length) {
     <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold text-brand-cream">Continue Watching</h2>
+      <h2 class="text-lg font-semibold text-brand-cyan">Continue Watching</h2>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         @for (item of history.continueWatching(); track item.kind + item.id + (item.episodeId ?? '')) {
           <div class="relative">
@@ -24,7 +24,7 @@
             <button
               type="button"
               (click)="remove(item)"
-              class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-deep-950/60 text-brand-cream opacity-0 transition hover:bg-brand-deep-950/80 group-hover:opacity-100"
+              class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary/60 text-brand-cyan opacity-0 transition hover:bg-brand-primary/80 group-hover:opacity-100"
               aria-label="Remove from history"
             >
               ✕
@@ -37,7 +37,7 @@
 
   @if (history.recentlyWatched().length) {
     <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold text-brand-cream">Recently Watched</h2>
+      <h2 class="text-lg font-semibold text-brand-cyan">Recently Watched</h2>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         @for (item of history.recentlyWatched(); track item.kind + item.id + (item.episodeId ?? '')) {
           <div class="relative">
@@ -52,7 +52,7 @@
             <button
               type="button"
               (click)="remove(item)"
-              class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-deep-950/60 text-xs text-brand-cream hover:bg-brand-deep-950/80"
+              class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary/60 text-xs text-brand-cyan hover:bg-brand-primary/80"
               aria-label="Remove from history"
             >
               ✕

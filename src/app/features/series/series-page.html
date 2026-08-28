@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4">
-  <h1 class="text-xl font-semibold text-brand-cream">Series</h1>
+  <h1 class="text-xl font-semibold text-brand-cyan">Series</h1>
 
   <app-category-tabs [categories]="categories()" [activeId]="selectedCategoryId()" (select)="selectCategory($event)" />
 
@@ -29,7 +29,7 @@
 
     @if (hasMore()) {
       <div appVisibleOnScroll (visible)="loadMore()" class="flex justify-center py-6">
-        <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-deep-700 border-t-brand-deep-300"></div>
+        <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-violet border-t-brand-secondary"></div>
       </div>
     }
   }

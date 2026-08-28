@@ -1,9 +1,9 @@
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center bg-brand-deep-950/70 px-4 backdrop-blur-sm"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-brand-primary/70 px-4 backdrop-blur-sm"
   (click)="closed.emit()"
 >
   <div
-    class="relative w-full max-w-sm rounded-2xl border border-brand-deep-800/80 bg-brand-deep-900/95 p-6 shadow-2xl"
+    class="relative w-full max-w-sm rounded-2xl border border-brand-violet/80 bg-brand-primary/95 p-6 shadow-2xl"
     role="dialog"
     aria-modal="true"
     aria-label="Connect to your IPTV server"
@@ -12,7 +12,7 @@
     <button
       type="button"
       (click)="closed.emit()"
-      class="absolute right-4 top-4 text-brand-deep-400 hover:text-brand-cream"
+      class="absolute right-4 top-4 text-brand-sky hover:text-brand-cyan"
       aria-label="Close"
       title="Close"
     >
@@ -20,21 +20,23 @@
     </button>
 
     <div class="mb-6 flex flex-col items-center gap-2 text-center">
-      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary text-lg font-bold text-brand-cream shadow-lg shadow-brand-primary/30">L</span>
-      <h2 class="text-xl font-semibold text-brand-cream">Connect to your IPTV</h2>
-      <p class="text-sm text-brand-deep-400">Enter your provider's details to start watching.</p>
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-secondary text-brand-primary shadow-lg shadow-brand-secondary/30">
+        <app-logo-mark [size]="26" />
+      </span>
+      <h2 class="text-xl font-semibold text-brand-cyan">Connect to your IPTV</h2>
+      <p class="text-sm text-brand-sky">Enter your provider's details to start watching.</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label for="serverUrl" class="text-xs font-medium uppercase tracking-wide text-brand-deep-400">Server URL</label>
+        <label for="serverUrl" class="text-xs font-medium uppercase tracking-wide text-brand-sky">Server URL</label>
         <input
           id="serverUrl"
           type="text"
           formControlName="serverUrl"
           placeholder="http://example.com:8080"
           autocomplete="url"
-          class="rounded-lg border border-brand-deep-700 bg-brand-deep-950/60 px-3.5 py-2.5 text-sm text-brand-deep-100 placeholder-brand-deep-600 outline-none transition focus:border-brand-primary"
+          class="rounded-lg border border-brand-violet bg-brand-primary/60 px-3.5 py-2.5 text-sm text-brand-cyan placeholder-brand-violet outline-none transition focus:border-brand-secondary"
         />
         @if (form.controls.serverUrl.invalid && form.controls.serverUrl.touched) {
           <p class="text-xs text-red-400">Server URL is required.</p>
@@ -42,14 +44,14 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="username" class="text-xs font-medium uppercase tracking-wide text-brand-deep-400">Username</label>
+        <label for="username" class="text-xs font-medium uppercase tracking-wide text-brand-sky">Username</label>
         <input
           id="username"
           type="text"
           formControlName="username"
           placeholder="username"
           autocomplete="username"
-          class="rounded-lg border border-brand-deep-700 bg-brand-deep-950/60 px-3.5 py-2.5 text-sm text-brand-deep-100 placeholder-brand-deep-600 outline-none transition focus:border-brand-primary"
+          class="rounded-lg border border-brand-violet bg-brand-primary/60 px-3.5 py-2.5 text-sm text-brand-cyan placeholder-brand-violet outline-none transition focus:border-brand-secondary"
         />
         @if (form.controls.username.invalid && form.controls.username.touched) {
           <p class="text-xs text-red-400">Username is required.</p>
@@ -57,7 +59,7 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="password" class="text-xs font-medium uppercase tracking-wide text-brand-deep-400">Password</label>
+        <label for="password" class="text-xs font-medium uppercase tracking-wide text-brand-sky">Password</label>
         <div class="relative">
           <input
             id="password"
@@ -65,12 +67,12 @@
             formControlName="password"
             placeholder="••••••••••"
             autocomplete="current-password"
-            class="w-full rounded-lg border border-brand-deep-700 bg-brand-deep-950/60 px-3.5 py-2.5 pr-10 text-sm text-brand-deep-100 placeholder-brand-deep-600 outline-none transition focus:border-brand-primary"
+            class="w-full rounded-lg border border-brand-violet bg-brand-primary/60 px-3.5 py-2.5 pr-10 text-sm text-brand-cyan placeholder-brand-violet outline-none transition focus:border-brand-secondary"
           />
           <button
             type="button"
             (click)="showPassword.set(!showPassword())"
-            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-brand-deep-500 hover:text-brand-deep-300"
+            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-brand-sky hover:text-brand-cyan"
             [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
             [title]="showPassword() ? 'Hide password' : 'Show password'"
           >
@@ -90,8 +92,8 @@
         }
       </div>
 
-      <label class="flex items-center gap-2 text-sm text-brand-deep-400">
-        <input type="checkbox" formControlName="rememberMe" class="h-4 w-4 rounded border-brand-deep-700 bg-brand-deep-950 accent-brand-primary" />
+      <label class="flex items-center gap-2 text-sm text-brand-sky">
+        <input type="checkbox" formControlName="rememberMe" class="h-4 w-4 rounded border-brand-violet bg-brand-primary accent-brand-secondary" />
         Remember me on this device
       </label>
 
@@ -104,10 +106,10 @@
       <button
         type="submit"
         [disabled]="submitting()"
-        class="mt-1 flex items-center justify-center gap-2 rounded-lg bg-brand-primary py-2.5 text-sm font-semibold text-brand-cream transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+        class="mt-1 flex items-center justify-center gap-2 rounded-lg bg-brand-secondary py-2.5 text-sm font-semibold text-brand-primary transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         @if (submitting()) {
-          <span class="h-4 w-4 animate-spin rounded-full border-2 border-brand-cream/30 border-t-white"></span>
+          <span class="h-4 w-4 animate-spin rounded-full border-2 border-brand-cyan/30 border-t-brand-secondary"></span>
           Connecting…
         } @else {
           Connect
@@ -115,7 +117,7 @@
       </button>
     </form>
 
-    <p class="mt-5 text-center text-xs text-brand-deep-600">
+    <p class="mt-5 text-center text-xs text-brand-violet">
       Your credentials are sent only to the server URL above, directly from your browser. Nothing is sent anywhere else.
     </p>
   </div>

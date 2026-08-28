@@ -11,7 +11,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       [attr.aria-label]="active() ? 'Remove from favorites' : 'Add to favorites'"
       [title]="active() ? 'Remove from favorites' : 'Add to favorites'"
       class="flex h-9 w-9 items-center justify-center rounded-full backdrop-blur transition"
-      [class]="active() ? 'bg-brand-primary/90 text-brand-cream' : 'bg-brand-deep-950/50 text-brand-cream hover:bg-brand-deep-950/70'"
+      [class]="active() ? 'bg-brand-secondary/90 text-brand-primary' : 'bg-brand-primary/50 text-brand-cyan hover:bg-brand-primary/70'"
     >
       <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" [attr.fill]="active() ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
         <path

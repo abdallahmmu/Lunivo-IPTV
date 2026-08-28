@@ -11,7 +11,7 @@ import { XtreamCategory } from '../../../core/models/common.models';
         (click)="select.emit(null)"
         title="All categories"
         class="shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition"
-        [class]="activeId() === null ? 'bg-brand-primary text-brand-cream' : 'bg-brand-deep-800 text-brand-deep-300 hover:bg-brand-deep-700'"
+        [class]="activeId() === null ? 'bg-brand-secondary text-brand-primary' : 'bg-brand-violet/60 text-brand-cyan hover:bg-brand-violet'"
       >
         All
       </button>
@@ -21,7 +21,7 @@ import { XtreamCategory } from '../../../core/models/common.models';
           (click)="select.emit(category.category_id)"
           [title]="category.category_name"
           class="shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition"
-          [class]="activeId() === category.category_id ? 'bg-brand-primary text-brand-cream' : 'bg-brand-deep-800 text-brand-deep-300 hover:bg-brand-deep-700'"
+          [class]="activeId() === category.category_id ? 'bg-brand-secondary text-brand-primary' : 'bg-brand-violet/60 text-brand-cyan hover:bg-brand-violet'"
         >
           {{ category.category_name }}
           @if (category.stream_count) {

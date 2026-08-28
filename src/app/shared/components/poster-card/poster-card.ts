@@ -13,9 +13,9 @@ import { RatingPipe } from '../../pipes/rating.pipe';
       type="button"
       (click)="activate.emit()"
       [title]="subtitle() ? title() + ' — ' + subtitle() : title()"
-      class="group relative block w-full shrink-0 overflow-hidden rounded-lg bg-brand-deep-900 text-left ring-1 ring-brand-cream/5 transition duration-200 hover:z-10 hover:-translate-y-1 hover:ring-brand-cream/20 hover:shadow-2xl hover:shadow-brand-deep-950/50"
+      class="group relative block w-full shrink-0 overflow-hidden rounded-lg bg-brand-primary text-left ring-1 ring-brand-cyan/5 transition duration-200 hover:z-10 hover:-translate-y-1 hover:ring-brand-cyan/20 hover:shadow-2xl hover:shadow-brand-primary/50"
     >
-      <div class="aspect-2/3 w-full overflow-hidden bg-brand-deep-800">
+      <div class="aspect-2/3 w-full overflow-hidden bg-brand-violet">
         <img
           [src]="image() || placeholder"
           appImageFallback="poster"
@@ -30,14 +30,14 @@ import { RatingPipe } from '../../pipes/rating.pipe';
       </div>
 
       @if (rating() | rating; as r) {
-        <div class="absolute right-2 top-2 rounded-md bg-brand-deep-950/60 px-1.5 py-0.5 text-xs font-medium text-amber-400 backdrop-blur" title="Rating: {{ r }}">
+        <div class="absolute right-2 top-2 rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-xs font-medium text-amber-400 backdrop-blur" title="Rating: {{ r }}">
           ★ {{ r }}
         </div>
       }
 
       @if (extension(); as ext) {
         <div
-          class="absolute left-2 top-2 rounded-md bg-brand-deep-950/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-deep-100 backdrop-blur"
+          class="absolute left-2 top-2 rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-cyan backdrop-blur"
           title="File type: {{ ext }}"
         >
           {{ ext }}
@@ -50,10 +50,10 @@ import { RatingPipe } from '../../pipes/rating.pipe';
         </div>
       }
 
-      <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-deep-950/90 via-brand-deep-950/40 to-transparent p-2.5 pt-8">
-        <p class="truncate text-sm font-medium text-brand-cream">{{ title() }}</p>
+      <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-primary/90 via-brand-primary/40 to-transparent p-2.5 pt-8">
+        <p class="truncate text-sm font-medium text-brand-cyan">{{ title() }}</p>
         @if (subtitle()) {
-          <p class="truncate text-xs text-brand-deep-300">{{ subtitle() }}</p>
+          <p class="truncate text-xs text-brand-cyan">{{ subtitle() }}</p>
         }
       </div>
     </button>

@@ -2,48 +2,38 @@
 @import '@angular/cdk/overlay-prebuilt.css';
 
 /*
- * Brand palette — change these four values to re-theme the whole app.
+ * Brand palette — five flat, literal colors from our ColorHunt identity
+ * (https://colorhunt.co/palette/ffc349525ea75facd397dde9 + a dark navy for
+ * backgrounds). Every one of these is used exactly as given below — no
+ * color-mix, no blending toward black/white to fake a ramp. Depth/hover
+ * states are built from these same five colors at different opacities
+ * (Tailwind's /NN suffix), never a new synthesized hex value.
  *
- * brand-primary / brand-mint / brand-cream are used as flat accent colors
- * (CTAs, active states, highlights). brand-deep additionally drives a full
- * 50–950 neutral ramp below (background-deep-*) via color-mix, so it acts
- * as the app's entire "slate" replacement — every page background, border,
- * and muted-text color is generated from this one value. Change
- * --color-brand-deep and the whole app's dark theme re-tints with it.
+ *   primary   — base page & surface background
+ *   secondary — CTAs, active/selected states, progress fill, ratings
+ *   violet    — secondary surfaces: inactive pills, cards, borders, skeletons
+ *   sky       — selected-state indicators, links, "currently playing" highlight
+ *   cyan      — body & heading text, default icon color, on the dark background
  *
- * All of this is exposed both as Tailwind utilities (bg-brand-primary,
- * text-brand-deep-400, border-brand-deep-800, ...) and as plain CSS custom
- * properties (var(--color-brand-primary)) for use outside Tailwind, such as
- * in component .css files.
+ * Change any of the five hex values below and the whole app re-tints.
  */
 @theme {
-  --color-brand-primary: #3368A0;
-  --color-brand-deep: #66A3BF;
-  --color-brand-mint: #C8DFDB;
-  --color-brand-cream: #F2EFE7;
-
-  --color-brand-deep-50: color-mix(in oklch, white 95%, var(--color-brand-deep) 5%);
-  --color-brand-deep-100: color-mix(in oklch, white 88%, var(--color-brand-deep) 12%);
-  --color-brand-deep-200: color-mix(in oklch, white 75%, var(--color-brand-deep) 25%);
-  --color-brand-deep-300: color-mix(in oklch, white 58%, var(--color-brand-deep) 42%);
-  --color-brand-deep-400: color-mix(in oklch, white 32%, var(--color-brand-deep) 30%);
-  --color-brand-deep-500: var(--color-brand-deep);
-  --color-brand-deep-600: color-mix(in oklch, var(--color-brand-deep) 85%, black 15%);
-  --color-brand-deep-700: color-mix(in oklch, var(--color-brand-deep) 68%, black 5%);
-  --color-brand-deep-800: color-mix(in oklch, var(--color-brand-deep) 50%, black 30%);
-  --color-brand-deep-900: color-mix(in oklch, var(--color-brand-deep) 30%, black 50%);
-  --color-brand-deep-950: color-mix(in oklch, var(--color-brand-deep) 16%, black 50%);
+  --color-brand-primary: #091413;
+  --color-brand-secondary: #FFC570;
+  --color-brand-violet: #1A3263;
+  --color-brand-sky: #fff;
+  --color-brand-cyan: #fff;
 }
 
 html,
 body {
   height: 100%;
-  background-color: var(--color-brand-deep-950);
+  background-color: var(--color-brand-primary);
 }
 
 body {
   font-family:
-    'Inter',
+    'Roboto',
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -60,7 +50,7 @@ body {
 }
 
 * {
-  scrollbar-color: var(--color-brand-deep-700) transparent;
+  scrollbar-color: var(--color-brand-violet) transparent;
 }
 
 button:not(:disabled),
@@ -69,13 +59,38 @@ button:not(:disabled),
 }
 
 /*
+ * Native Angular enter/leave animations (animate.enter="..."), plain CSS keyframes —
+ * replaces the deprecated @angular/animations trigger DSL for our own app-level
+ * animations, at zero extra bundle cost. @angular/animations itself is still a
+ * dependency, but only for Angular Material's own internal tooltip animation.
+ */
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-enter {
+  animation: fade-slide-up 0.5s ease-out both;
+}
+
+.carousel-item-enter {
+  animation: fade-slide-up 0.35s ease-out both;
+}
+
+/*
  * Angular Material tooltip, reskinned to match the app's own dropdown-menu look
  * (used in place of native title="" attributes for richer, more reliable positioning).
  */
 .mat-mdc-tooltip-surface {
-  background-color: var(--color-brand-deep-900) !important;
-  color: var(--color-brand-cream) !important;
-  border: 1px solid var(--color-brand-deep-700) !important;
+  background-color: var(--color-brand-primary) !important;
+  color: var(--color-brand-cyan) !important;
+  border: 1px solid var(--color-brand-violet) !important;
   border-radius: 0.5rem !important;
   font-size: 0.75rem !important;
   font-family: inherit !important;

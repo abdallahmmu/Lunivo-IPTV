@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { AppError, initialLoadState } from '../../core/models/common.models';
 import { SeriesListItem } from '../../core/models/series.models';
@@ -27,6 +27,7 @@ export class SeriesPage {
   private readonly api = inject(IptvApiService);
   private readonly favorites = inject(FavoritesService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly categories = toSignal(this.api.getSeriesCategories().pipe(catchError(() => of([]))), { initialValue: [] });
   protected readonly selectedCategoryId = signal<string | null>(null);
@@ -47,7 +48,9 @@ export class SeriesPage {
   protected readonly hasMore = computed(() => this.visibleCount() < this.filtered().length);
 
   constructor() {
-    this.load(null);
+    const categoryId = this.route.snapshot.queryParamMap.get('category');
+    this.selectedCategoryId.set(categoryId);
+    this.load(categoryId);
   }
 
   protected selectCategory(categoryId: string | null): void {

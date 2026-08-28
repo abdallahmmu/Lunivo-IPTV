@@ -11,8 +11,8 @@ export type SkeletonVariant = 'poster-grid' | 'list-rows' | 'hero';
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           @for (i of items(); track i) {
             <div class="animate-pulse">
-              <div class="aspect-[2/3] rounded-lg bg-brand-deep-800"></div>
-              <div class="mt-2 h-3 w-3/4 rounded bg-brand-deep-800"></div>
+              <div class="aspect-[2/3] rounded-lg bg-brand-violet"></div>
+              <div class="mt-2 h-3 w-3/4 rounded bg-brand-violet"></div>
             </div>
           }
         </div>
@@ -21,14 +21,14 @@ export type SkeletonVariant = 'poster-grid' | 'list-rows' | 'hero';
         <div class="flex flex-col gap-2">
           @for (i of items(); track i) {
             <div class="flex animate-pulse items-center gap-3 rounded-lg p-2">
-              <div class="h-10 w-10 shrink-0 rounded bg-brand-deep-800"></div>
-              <div class="h-3 w-1/2 rounded bg-brand-deep-800"></div>
+              <div class="h-10 w-10 shrink-0 rounded bg-brand-violet"></div>
+              <div class="h-3 w-1/2 rounded bg-brand-violet"></div>
             </div>
           }
         </div>
       }
       @case ('hero') {
-        <div class="aspect-video w-full animate-pulse rounded-xl bg-brand-deep-800"></div>
+        <div class="aspect-video w-full animate-pulse rounded-xl bg-brand-violet"></div>
       }
     }
   `,

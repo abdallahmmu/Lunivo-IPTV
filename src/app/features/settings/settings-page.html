@@ -1,34 +1,34 @@
 <div class="flex max-w-2xl flex-col gap-6">
-  <h1 class="text-xl font-semibold text-brand-cream">Settings</h1>
+  <h1 class="text-xl font-semibold text-brand-cyan">Settings</h1>
 
-  <section class="flex flex-col gap-3 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Account</h2>
+  <section class="flex flex-col gap-3 rounded-xl border border-brand-violet/80 bg-brand-primary/50 p-5">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-sky">Account</h2>
     <dl class="grid grid-cols-2 gap-y-2.5 text-sm">
-      <dt class="text-brand-deep-500">Server</dt>
-      <dd class="text-brand-deep-200">{{ auth.credentials()?.serverUrl }}</dd>
-      <dt class="text-brand-deep-500">Username</dt>
-      <dd class="text-brand-deep-200">{{ auth.credentials()?.username }}</dd>
-      <dt class="text-brand-deep-500">Status</dt>
-      <dd class="capitalize text-brand-deep-200">{{ auth.accountStatus() }}</dd>
+      <dt class="text-brand-sky">Server</dt>
+      <dd class="text-brand-cyan">{{ auth.credentials()?.serverUrl }}</dd>
+      <dt class="text-brand-sky">Username</dt>
+      <dd class="text-brand-cyan">{{ auth.credentials()?.username }}</dd>
+      <dt class="text-brand-sky">Status</dt>
+      <dd class="capitalize text-brand-cyan">{{ auth.accountStatus() }}</dd>
       @if (auth.expiryDate(); as exp) {
-        <dt class="text-brand-deep-500">Expires</dt>
-        <dd class="text-brand-deep-200">{{ exp | date: 'medium' }}</dd>
+        <dt class="text-brand-sky">Expires</dt>
+        <dd class="text-brand-cyan">{{ exp | date: 'medium' }}</dd>
       }
-      <dt class="text-brand-deep-500">Max connections</dt>
-      <dd class="text-brand-deep-200">{{ auth.userInfo()?.max_connections }}</dd>
-      <dt class="text-brand-deep-500">Active connections</dt>
-      <dd class="text-brand-deep-200">{{ auth.userInfo()?.active_cons }}</dd>
+      <dt class="text-brand-sky">Max connections</dt>
+      <dd class="text-brand-cyan">{{ auth.userInfo()?.max_connections }}</dd>
+      <dt class="text-brand-sky">Active connections</dt>
+      <dd class="text-brand-cyan">{{ auth.userInfo()?.active_cons }}</dd>
       @if (auth.serverInfo(); as server) {
-        <dt class="text-brand-deep-500">Panel</dt>
-        <dd class="text-brand-deep-200">{{ server.panel }} {{ server.version }}</dd>
+        <dt class="text-brand-sky">Panel</dt>
+        <dd class="text-brand-cyan">{{ server.panel }} {{ server.version }}</dd>
       }
     </dl>
   </section>
 
-  <section class="flex flex-col gap-3 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Data</h2>
+  <section class="flex flex-col gap-3 rounded-xl border border-brand-violet/80 bg-brand-primary/50 p-5">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-sky">Data</h2>
     <div class="flex flex-wrap items-center gap-3">
-      <button type="button" (click)="refreshData()" class="rounded-full bg-brand-primary px-4 py-1.5 text-sm font-medium text-brand-cream hover:brightness-110">
+      <button type="button" (click)="refreshData()" class="rounded-full bg-brand-secondary px-4 py-1.5 text-sm font-medium text-brand-primary hover:brightness-110">
         Refresh IPTV data
       </button>
       @if (refreshed()) {
@@ -36,7 +36,7 @@
       }
     </div>
     <div class="flex flex-wrap items-center gap-3">
-      <button type="button" (click)="clearWatchHistory()" class="rounded-full border border-brand-deep-700 px-4 py-1.5 text-sm text-brand-deep-200 hover:border-brand-deep-500">
+      <button type="button" (click)="clearWatchHistory()" class="rounded-full border border-brand-violet px-4 py-1.5 text-sm text-brand-cyan hover:border-brand-sky">
         Clear watch history
       </button>
       @if (clearedHistory()) {
@@ -45,8 +45,8 @@
     </div>
   </section>
 
-  <section class="flex flex-col gap-2 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5 text-sm text-brand-deep-400">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Security &amp; limitations</h2>
+  <section class="flex flex-col gap-2 rounded-xl border border-brand-violet/80 bg-brand-primary/50 p-5 text-sm text-brand-sky">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-sky">Security &amp; limitations</h2>
     <p>This app talks directly to your IPTV server from your browser — nothing is sent to any other server.</p>
     <p>If you didn't choose "Remember me" at login, your password is kept only in this tab's session storage and is cleared when you close it.</p>
     <p>Some movies/episodes are encoded as MKV, which most browsers can't play natively — you'll get an "open externally" option for those.</p>

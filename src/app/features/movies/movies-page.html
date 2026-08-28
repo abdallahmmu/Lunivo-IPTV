@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4">
-  <h1 class="text-xl font-semibold text-brand-cream">Movies</h1>
+  <h1 class="text-xl font-semibold text-brand-cyan">Movies</h1>
 
   <app-category-tabs [categories]="categories()" [activeId]="selectedCategoryId()" (select)="selectCategory($event)" />
 
@@ -13,7 +13,7 @@
           type="button"
           (click)="onSort(opt.key)"
           class="rounded-full px-3 py-1 transition"
-          [class]="sortKey() === opt.key ? 'bg-brand-primary text-brand-cream' : 'bg-brand-deep-800 text-brand-deep-300 hover:bg-brand-deep-700'"
+          [class]="sortKey() === opt.key ? 'bg-brand-secondary text-brand-primary' : 'bg-brand-violet/60 text-brand-cyan hover:bg-brand-violet'"
         >
           {{ opt.label }}
         </button>
@@ -44,7 +44,7 @@
 
     @if (hasMore()) {
       <div appVisibleOnScroll (visible)="loadMore()" class="flex justify-center py-6">
-        <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-deep-700 border-t-brand-deep-300"></div>
+        <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-violet border-t-brand-secondary"></div>
       </div>
     }
   }

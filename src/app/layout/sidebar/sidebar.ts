@@ -29,8 +29,8 @@ const NAV_ITEMS: NavItem[] = [
         <a
           [routerLink]="item.path"
           [title]="item.label"
-          routerLinkActive="bg-brand-primary/15 text-brand-cream border-brand-primary"
-          class="flex items-center gap-3 rounded-lg border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-brand-deep-400 transition hover:bg-brand-deep-800/60 hover:text-brand-deep-100"
+          routerLinkActive="bg-brand-secondary/15 text-brand-cyan border-brand-secondary"
+          class="flex items-center gap-3 rounded-lg border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-brand-sky transition hover:bg-brand-violet/60 hover:text-brand-cyan"
         >
           <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path [attr.d]="item.icon" />
@@ -41,9 +41,9 @@ const NAV_ITEMS: NavItem[] = [
     </nav>
 
     @if (expiryDate(); as exp) {
-      <div class="hidden border-t border-brand-deep-800 p-4 text-xs text-brand-deep-500 lg:block">
+      <div class="hidden border-t border-brand-violet p-4 text-xs text-brand-sky lg:block">
         <p>Account expires</p>
-        <p class="text-brand-deep-300">{{ exp | date: 'mediumDate' }}</p>
+        <p class="text-brand-cyan">{{ exp | date: 'mediumDate' }}</p>
       </div>
     }
   `,

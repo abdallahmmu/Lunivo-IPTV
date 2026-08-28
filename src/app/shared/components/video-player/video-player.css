@@ -7,12 +7,12 @@
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  /* Three segments: played (brand), buffered-but-not-played (dim cream), untouched track. */
+  /* Three segments: played (secondary), buffered-but-not-played (dim cyan), untouched track. */
   background: linear-gradient(
     to right,
-    var(--color-brand-primary) var(--range-progress),
-    rgba(242, 239, 231, 0.35) var(--range-progress),
-    rgba(242, 239, 231, 0.35) var(--range-buffered),
+    var(--color-brand-secondary) var(--range-progress),
+    rgba(151, 221, 233, 0.35) var(--range-progress),
+    rgba(151, 221, 233, 0.35) var(--range-buffered),
     rgba(255, 255, 255, 0.25) var(--range-buffered)
   );
   cursor: pointer;
@@ -47,5 +47,5 @@
 .app-range::-moz-range-progress {
   height: 4px;
   border-radius: 999px;
-  background: var(--color-brand-primary);
+  background: var(--color-brand-secondary);
 }

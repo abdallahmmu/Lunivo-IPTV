@@ -3,11 +3,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AppError } from '../../../core/models/common.models';
 import { AuthService } from '../../../core/services/auth.service';
+import { LogoMark } from '../logo-mark/logo-mark';
 
 @Component({
   selector: 'app-login-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LogoMark],
   templateUrl: './login-dialog.html',
 })
 export class LoginDialog {

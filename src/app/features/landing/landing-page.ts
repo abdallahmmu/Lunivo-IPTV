@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { LoginDialog } from '../../shared/components/login-dialog/login-dialog';
+import { LogoMark } from '../../shared/components/logo-mark/logo-mark';
 
 interface Feature {
   title: string;
@@ -33,7 +34,7 @@ const FEATURES: Feature[] = [
 @Component({
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LoginDialog],
+  imports: [LoginDialog, LogoMark],
   templateUrl: './landing-page.html',
 })
 export class LandingPage {

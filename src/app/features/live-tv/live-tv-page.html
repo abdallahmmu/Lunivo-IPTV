@@ -9,20 +9,20 @@
 
     @if (selectedChannel(); as channel) {
       <div class="flex flex-col gap-1">
-        <h1 class="text-lg font-semibold text-brand-cream">{{ channel.name }}</h1>
+        <h1 class="text-lg font-semibold text-brand-cyan">{{ channel.name }}</h1>
         @if (nowNext(); as epg) {
           @if (epg.now || epg.next) {
-            <div class="flex flex-wrap gap-6 text-sm text-brand-deep-400">
+            <div class="flex flex-wrap gap-6 text-sm text-brand-sky">
               @if (epg.now; as now) {
                 <div>
-                  <span class="font-medium text-brand-deep-200">Now:</span> {{ now.title }}
-                  <span class="text-brand-deep-500">({{ now.start | date: 'shortTime' }} – {{ now.end | date: 'shortTime' }})</span>
+                  <span class="font-medium text-brand-cyan">Now:</span> {{ now.title }}
+                  <span class="text-brand-sky">({{ now.start | date: 'shortTime' }} – {{ now.end | date: 'shortTime' }})</span>
                 </div>
               }
               @if (epg.next; as next) {
                 <div>
-                  <span class="font-medium text-brand-deep-200">Next:</span> {{ next.title }}
-                  <span class="text-brand-deep-500">({{ next.start | date: 'shortTime' }})</span>
+                  <span class="font-medium text-brand-cyan">Next:</span> {{ next.title }}
+                  <span class="text-brand-sky">({{ next.start | date: 'shortTime' }})</span>
                 </div>
               }
             </div>
