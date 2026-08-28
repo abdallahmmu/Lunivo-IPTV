@@ -35,21 +35,35 @@ public class LocalVideoRelayServer extends NanoHTTPD {
 
     @Override
     public Response serve(IHTTPSession session) {
+        // The WebView loads this relay with crossOrigin="anonymous" (see video-player.ts, needed
+        // for the Web Audio gain graph), so every request — including the actual GET — is subject
+        // to CORS, and a Range header (used for seeking) isn't CORS-safelisted, so the browser
+        // preflights it with OPTIONS first. Without these headers the browser blocks the response
+        // even though the relay itself succeeded.
+        if (Method.OPTIONS.equals(session.getMethod())) {
+            Response preflight = newFixedLengthResponse(Response.Status.NO_CONTENT, "text/plain", "");
+            addCorsHeaders(preflight);
+            preflight.addHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+            preflight.addHeader("Access-Control-Allow-Headers", "Range, Content-Type");
+            preflight.addHeader("Access-Control-Max-Age", "86400");
+            return preflight;
+        }
+
         Map<String, String> params = session.getParms();
         String target = params.get("url");
         if (target == null || target.isEmpty()) {
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing url param");
+            return corsResponse(Response.Status.BAD_REQUEST, "Missing url param");
         }
 
         String decoded;
         try {
             decoded = URLDecoder.decode(target, StandardCharsets.UTF_8.name());
         } catch (Exception e) {
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Invalid url param");
+            return corsResponse(Response.Status.BAD_REQUEST, "Invalid url param");
         }
 
         if (!decoded.startsWith("http://") && !decoded.startsWith("https://")) {
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Only http/https targets are allowed");
+            return corsResponse(Response.Status.BAD_REQUEST, "Only http/https targets are allowed");
         }
 
         try {
@@ -68,7 +82,7 @@ public class LocalVideoRelayServer extends NanoHTTPD {
             int upstreamStatus = conn.getResponseCode();
             InputStream body = upstreamStatus >= 400 ? conn.getErrorStream() : conn.getInputStream();
             if (body == null) {
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "No response body from upstream");
+                return corsResponse(Response.Status.INTERNAL_ERROR, "No response body from upstream");
             }
 
             String contentType = conn.getContentType();
@@ -85,13 +99,25 @@ public class LocalVideoRelayServer extends NanoHTTPD {
                 response.addHeader("Content-Range", contentRange);
             }
             response.addHeader("Accept-Ranges", "bytes");
+            addCorsHeaders(response);
+            response.addHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length");
             return response;
             // Not calling conn.disconnect() here — NanoHTTPD reads `body` lazily while streaming the
             // response to the client after serve() returns, so closing the connection early would
             // truncate playback.
         } catch (IOException e) {
             Log.e(TAG, "relay failed for " + decoded, e);
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Upstream request failed: " + e.getMessage());
+            return corsResponse(Response.Status.INTERNAL_ERROR, "Upstream request failed: " + e.getMessage());
         }
+    }
+
+    private Response corsResponse(Response.IStatus status, String message) {
+        Response response = newFixedLengthResponse(status, "text/plain", message);
+        addCorsHeaders(response);
+        return response;
+    }
+
+    private void addCorsHeaders(Response response) {
+        response.addHeader("Access-Control-Allow-Origin", "*");
     }
 }
