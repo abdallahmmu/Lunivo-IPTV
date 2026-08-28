@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 /**
  * Normalizes a user-entered IPTV server URL: adds a scheme if missing,
  * strips any path/query/hash and trailing slashes, and preserves a custom port.
@@ -28,15 +30,24 @@ export function normalizeServerUrl(input: string): string {
   return `${parsed.protocol}//${parsed.host}`;
 }
 
-/** True when the app origin is https but the target server is http — the browser will block this as mixed content. */
+/**
+ * True when the app origin is https but the target server is http — the browser will block this
+ * as mixed content. Always false inside the native Capacitor shell: its WebView reports a synthetic
+ * `https://localhost` origin, but CapacitorHttp routes these calls through native networking (not
+ * the WebView's fetch/XHR), which was never subject to the browser's mixed-content policy in the
+ * first place — so there's nothing to route around, and the (web-only) /api/proxy below isn't even
+ * reachable from inside the native shell.
+ */
 export function isMixedContentBlocked(serverUrl: string): boolean {
+  if (Capacitor.isNativePlatform()) return false;
   return typeof window !== 'undefined' && window.location.protocol === 'https:' && serverUrl.startsWith('http://');
 }
 
-/** True when this page itself is served over https — most IPTV panels are http-only, so connecting from here would hit mixed-content blocking. */
+/** True when this page itself is served over https (and isn't the native shell) — most IPTV panels
+ *  are http-only, so connecting from a real browser tab here would hit mixed-content blocking. */
 export function isRunningOverHttps(): boolean {
-  return false
-  // return typeof window !== 'undefined' && window.location.protocol === 'https:';
+  if (Capacitor.isNativePlatform()) return false;
+  return typeof window !== 'undefined' && window.location.protocol === 'https:';
 }
 
 /**
