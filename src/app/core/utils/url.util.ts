@@ -33,6 +33,11 @@ export function isMixedContentBlocked(serverUrl: string): boolean {
   return typeof window !== 'undefined' && window.location.protocol === 'https:' && serverUrl.startsWith('http://');
 }
 
+/** True when this page itself is served over https — most IPTV panels are http-only, so connecting from here would hit mixed-content blocking. */
+export function isRunningOverHttps(): boolean {
+  return typeof window !== 'undefined' && window.location.protocol === 'https:';
+}
+
 export function joinUrl(base: string, ...parts: Array<string | number>): string {
   const segments = parts.map((p) => String(p).replace(/^\/+|\/+$/g, ''));
   return [base.replace(/\/+$/, ''), ...segments].join('/');

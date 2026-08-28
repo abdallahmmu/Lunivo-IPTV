@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { isRunningOverHttps } from '../../core/utils/url.util';
 import { LoginDialog } from '../../shared/components/login-dialog/login-dialog';
 import { LogoMark } from '../../shared/components/logo-mark/logo-mark';
+
+export const GITHUB_REPO_URL = 'https://github.com/abdallahmmu/Lunivo-IPTV';
 
 interface Feature {
   title: string;
@@ -40,4 +43,9 @@ const FEATURES: Feature[] = [
 export class LandingPage {
   protected readonly features = FEATURES;
   protected readonly showDialog = signal(false);
+  protected readonly githubUrl = GITHUB_REPO_URL;
+
+  /** A publicly-hosted https copy can't reach most (http-only) IPTV panels — mixed content blocks it.
+   *  Point those visitors at GitHub to run Lunivo locally instead of letting them hit a confusing browser error. */
+  protected readonly requiresLocalRun = isRunningOverHttps();
 }
