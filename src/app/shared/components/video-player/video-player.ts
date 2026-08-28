@@ -12,6 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import Hls from 'hls.js';
 import { AppError } from '../../../core/models/common.models';
 import { PlaybackSource } from '../../../core/services/stream.service';
@@ -21,7 +22,10 @@ import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 const TIME_UPDATE_EMIT_INTERVAL_MS = 5000;
 /** Seconds moved per rewind/forward tap — surfaced in the UI so the label always matches the actual behavior. */
 export const SEEK_STEP_SECONDS = 10;
+/** How soon before the end the "next episode" prompt appears — matches Stremio's own next-up window. */
+const NEXT_UP_THRESHOLD_SECS = 15;
 const ASPECT_RATIO_STORAGE_KEY = 'video-aspect-ratio';
+const PLAYBACK_RATE_STORAGE_KEY = 'video-playback-rate';
 
 export interface QualityLevel {
   /** hls.js level index; -1 is reserved for "Auto" (ABR). */
@@ -55,10 +59,26 @@ export const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
   { id: '9:16', label: '9:16 Vertical', ratio: '9 / 16', fit: 'cover' },
 ];
 
+/** Standard playback-speed presets, same set most players (Stremio included) offer. */
+export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+export interface SubtitleTrack {
+  id: string;
+  label: string;
+}
+
+export interface PlaybackStats {
+  resolution: string;
+  bitrate: string;
+  droppedFrames: string;
+  bufferAhead: string;
+  rate: string;
+}
+
 @Component({
   selector: 'app-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ClockTimePipe],
+  imports: [ClockTimePipe, MatTooltipModule],
   templateUrl: './video-player.html',
   styleUrl: './video-player.css',
 })
@@ -89,6 +109,7 @@ export class VideoPlayer implements OnDestroy {
 
   protected readonly playing = signal(false);
   protected readonly muted = signal(false);
+  /** 0–2: 0–1 is native volume, 1–2 is a Web Audio gain boost layered on top of max native volume. */
   protected readonly volume = signal(1);
   protected readonly buffering = signal(false);
   protected readonly currentTime = signal(0);
@@ -101,6 +122,11 @@ export class VideoPlayer implements OnDestroy {
   protected readonly seekStep = SEEK_STEP_SECONDS;
   protected readonly seekPercent = computed(() => (this.duration() ? (this.currentTime() / this.duration()) * 100 : 0));
 
+  protected readonly bufferedEndSecs = signal(0);
+  protected readonly bufferedPercent = computed(() => (this.duration() ? (this.bufferedEndSecs() / this.duration()) * 100 : 0));
+
+  protected readonly showRemainingTime = signal(false);
+
   protected readonly qualityLevels = signal<QualityLevel[]>([]);
   protected readonly currentLevelIndex = signal(-1);
   protected readonly showQualityMenu = signal(false);
@@ -108,10 +134,28 @@ export class VideoPlayer implements OnDestroy {
   protected readonly aspectRatioOptions = ASPECT_RATIO_OPTIONS;
   protected readonly showAspectMenu = signal(false);
 
+  protected readonly playbackRates = PLAYBACK_RATES;
+  protected readonly showSpeedMenu = signal(false);
+
+  protected readonly subtitleTracks = signal<SubtitleTrack[]>([]);
+  protected readonly activeSubtitleId = signal<string | null>(null);
+  protected readonly showSubtitleMenu = signal(false);
+
+  protected readonly showStats = signal(false);
+
+  /** Seconds left before the end; null hides the prompt. Dismissing it only hides the notice — playback still ends and advances normally. */
+  protected readonly nextUpCountdown = signal<number | null>(null);
+  private nextUpDismissed = false;
+
   private readonly storage = inject(StorageService);
   protected readonly selectedAspectRatio = signal<AspectRatioOption>(this.loadAspectRatioPreference());
+  protected readonly playbackRate = signal<number>(this.loadPlaybackRatePreference());
 
   private hls: Hls | null = null;
+  private audioContext: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  private audioSourceNode: MediaElementAudioSourceNode | null = null;
+  private nativeSubtitleTracks: TextTrack[] = [];
   private lastEmittedAt = 0;
   private controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
   private viewReady = false;
@@ -133,6 +177,7 @@ export class VideoPlayer implements OnDestroy {
   ngOnDestroy(): void {
     this.destroyHls();
     if (this.controlsHideTimer) clearTimeout(this.controlsHideTimer);
+    this.audioContext?.close().catch(() => undefined);
   }
 
   private setupSource(): void {
@@ -142,9 +187,20 @@ export class VideoPlayer implements OnDestroy {
     this.error.set(null);
     this.currentTime.set(0);
     this.duration.set(0);
+    this.bufferedEndSecs.set(0);
     this.qualityLevels.set([]);
     this.currentLevelIndex.set(-1);
     this.showQualityMenu.set(false);
+    this.subtitleTracks.set([]);
+    this.activeSubtitleId.set(null);
+    this.nativeSubtitleTracks = [];
+    this.nextUpCountdown.set(null);
+    this.nextUpDismissed = false;
+
+    // Required up front (not retroactively) for a Web Audio gain graph to be able to read this
+    // element's audio later without tainting — see ensureAudioGraph(). The provider must send
+    // permissive CORS on the actual media response for this to work; harmless otherwise.
+    video.crossOrigin = 'anonymous';
 
     if (!source) {
       video.removeAttribute('src');
@@ -182,6 +238,15 @@ export class VideoPlayer implements OnDestroy {
           if (hls.autoLevelEnabled) this.currentLevelIndex.set(-1);
           else this.currentLevelIndex.set(data.level);
         });
+        // Only populated when the manifest itself advertises alternate subtitle renditions —
+        // most Xtream live channels are single-program streams with none at all, so this menu
+        // naturally stays hidden for those (see subtitleTracks().length > 0 in the template).
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_event, data) => {
+          this.subtitleTracks.set(data.subtitleTracks.map((t, i) => ({ id: String(i), label: t.name || t.lang || `Track ${i + 1}` })));
+        });
+        hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (_event, data) => {
+          this.activeSubtitleId.set(data.id >= 0 ? String(data.id) : null);
+        });
         hls.loadSource(source.url);
         hls.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -192,7 +257,18 @@ export class VideoPlayer implements OnDestroy {
       }
     } else {
       video.src = source.url;
+      // Embedded WebVTT tracks in an MP4/MKV surface here — most rips from this provider use
+      // hardsubs (baked into the video image) rather than a selectable track, so this is
+      // usually empty; it lights up honestly whenever a file actually has one.
+      const onTrackListChange = () => {
+        this.nativeSubtitleTracks = Array.from(video.textTracks);
+        this.subtitleTracks.set(this.nativeSubtitleTracks.map((t, i) => ({ id: String(i), label: t.label || t.language || `Track ${i + 1}` })));
+      };
+      video.textTracks.onaddtrack = onTrackListChange;
+      video.textTracks.onremovetrack = onTrackListChange;
     }
+
+    video.playbackRate = this.playbackRate();
 
     const resumeAt = this.startPositionSecs();
     if (resumeAt) {
@@ -226,11 +302,32 @@ export class VideoPlayer implements OnDestroy {
     this.currentTime.set(video.currentTime);
     if (!this.duration() && video.duration) this.duration.set(video.duration);
 
+    if (!this.isLive() && this.hasNext() && !this.nextUpDismissed && video.duration) {
+      const remaining = video.duration - video.currentTime;
+      this.nextUpCountdown.set(remaining > 0 && remaining <= NEXT_UP_THRESHOLD_SECS ? Math.ceil(remaining) : null);
+    }
+
     const now = Date.now();
     if (now - this.lastEmittedAt > TIME_UPDATE_EMIT_INTERVAL_MS && video.duration) {
       this.lastEmittedAt = now;
       this.timeUpdate.emit({ positionSecs: video.currentTime, durationSecs: video.duration });
     }
+  }
+
+  protected onProgress(): void {
+    const video = this.videoRef().nativeElement;
+    const buffered = video.buffered;
+    if (buffered.length === 0) {
+      this.bufferedEndSecs.set(0);
+      return;
+    }
+    for (let i = 0; i < buffered.length; i++) {
+      if (buffered.start(i) <= video.currentTime && video.currentTime <= buffered.end(i)) {
+        this.bufferedEndSecs.set(buffered.end(i));
+        return;
+      }
+    }
+    this.bufferedEndSecs.set(buffered.end(buffered.length - 1));
   }
 
   protected onPlay(): void {
@@ -283,12 +380,41 @@ export class VideoPlayer implements OnDestroy {
     this.onVolumeChange((event.target as HTMLInputElement).valueAsNumber);
   }
 
+  /** 0–1 drives native volume directly; 1–2 keeps native volume maxed and layers a Web Audio gain boost on top. */
   private onVolumeChange(value: number): void {
     const video = this.videoRef().nativeElement;
-    video.volume = value;
-    video.muted = value === 0;
-    this.volume.set(value);
+    const clamped = Math.max(0, Math.min(2, value));
+    if (clamped <= 1) {
+      video.volume = clamped;
+      video.muted = clamped === 0;
+      if (this.gainNode) this.gainNode.gain.value = 1;
+    } else {
+      video.volume = 1;
+      video.muted = false;
+      if (this.ensureAudioGraph() && this.gainNode) {
+        this.gainNode.gain.value = clamped;
+      }
+    }
+    this.volume.set(clamped);
     this.muted.set(video.muted);
+  }
+
+  /** Lazily builds a MediaElementSource → Gain → destination graph the first time boost is used. */
+  private ensureAudioGraph(): boolean {
+    if (this.gainNode) return true;
+    try {
+      const video = this.videoRef().nativeElement;
+      const AudioContextCtor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.audioContext = new AudioContextCtor();
+      this.audioSourceNode = this.audioContext.createMediaElementSource(video);
+      this.gainNode = this.audioContext.createGain();
+      this.audioSourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.audioContext.destination);
+      return true;
+    } catch {
+      // Boost silently unavailable (e.g. no Web Audio support) — volume simply caps at 100%.
+      return false;
+    }
   }
 
   protected onSeek(event: Event): void {
@@ -298,6 +424,10 @@ export class VideoPlayer implements OnDestroy {
   protected seekBy(deltaSeconds: number): void {
     const video = this.videoRef().nativeElement;
     video.currentTime = Math.max(0, Math.min(video.duration || Infinity, video.currentTime + deltaSeconds));
+  }
+
+  protected toggleTimeDisplay(): void {
+    this.showRemainingTime.update((v) => !v);
   }
 
   protected async toggleFullscreen(): Promise<void> {
@@ -330,6 +460,43 @@ export class VideoPlayer implements OnDestroy {
     return ASPECT_RATIO_OPTIONS.find((o) => o.id === savedId) ?? ASPECT_RATIO_OPTIONS[0];
   }
 
+  protected toggleSpeedMenu(): void {
+    this.showSpeedMenu.update((v) => !v);
+  }
+
+  protected setPlaybackRate(rate: number): void {
+    this.videoRef().nativeElement.playbackRate = rate;
+    this.playbackRate.set(rate);
+    this.showSpeedMenu.set(false);
+    this.storage.set(PLAYBACK_RATE_STORAGE_KEY, rate);
+  }
+
+  private loadPlaybackRatePreference(): number {
+    const saved = this.storage.get<number>(PLAYBACK_RATE_STORAGE_KEY);
+    return saved && PLAYBACK_RATES.includes(saved) ? saved : 1;
+  }
+
+  protected toggleSubtitleMenu(): void {
+    this.showSubtitleMenu.update((v) => !v);
+  }
+
+  protected setSubtitleTrack(id: string | null): void {
+    if (this.hls) {
+      this.hls.subtitleTrack = id === null ? -1 : Number(id);
+    } else {
+      this.nativeSubtitleTracks.forEach((track, i) => {
+        track.mode = id !== null && String(i) === id ? 'showing' : 'disabled';
+      });
+      this.activeSubtitleId.set(id);
+    }
+    this.showSubtitleMenu.set(false);
+  }
+
+  protected currentSubtitleLabel(): string {
+    if (this.activeSubtitleId() === null) return 'Off';
+    return this.subtitleTracks().find((t) => t.id === this.activeSubtitleId())?.label ?? 'Off';
+  }
+
   protected setQuality(index: number): void {
     if (this.hls) {
       this.hls.currentLevel = index;
@@ -341,6 +508,35 @@ export class VideoPlayer implements OnDestroy {
   protected currentQualityLabel(): string {
     if (this.currentLevelIndex() === -1) return 'Auto';
     return this.qualityLevels().find((l) => l.index === this.currentLevelIndex())?.label ?? 'Auto';
+  }
+
+  protected toggleStats(): void {
+    this.showStats.update((v) => !v);
+  }
+
+  /** Recomputed on every call (template re-evaluates it on each change-detection pass, which
+   *  timeupdate already drives ~4x/sec) so the stats panel reads live, like a real player's would. */
+  protected playbackStats(): PlaybackStats {
+    const video = this.videoRef().nativeElement;
+    const quality = video.getVideoPlaybackQuality?.();
+    const level = this.hls && this.currentLevelIndex() >= 0 ? this.hls.levels[this.currentLevelIndex()] : null;
+    return {
+      resolution: video.videoWidth ? `${video.videoWidth}×${video.videoHeight}` : '—',
+      bitrate: level?.bitrate ? `${Math.round(level.bitrate / 1000)} kbps` : '—',
+      droppedFrames: quality ? `${quality.droppedVideoFrames} / ${quality.totalVideoFrames}` : '—',
+      bufferAhead: `${Math.max(0, this.bufferedEndSecs() - this.currentTime()).toFixed(1)}s`,
+      rate: `${this.playbackRate()}×`,
+    };
+  }
+
+  protected dismissNextUp(): void {
+    this.nextUpDismissed = true;
+    this.nextUpCountdown.set(null);
+  }
+
+  protected playNextNow(): void {
+    this.nextUpCountdown.set(null);
+    this.nextEpisode.emit();
   }
 
   protected async togglePip(): Promise<void> {
@@ -373,7 +569,7 @@ export class VideoPlayer implements OnDestroy {
         break;
       case 'ArrowUp':
         event.preventDefault();
-        this.onVolumeChange(Math.min(1, this.volume() + 0.1));
+        this.onVolumeChange(Math.min(2, this.volume() + 0.1));
         break;
       case 'ArrowDown':
         event.preventDefault();
@@ -384,6 +580,13 @@ export class VideoPlayer implements OnDestroy {
         break;
       case 'f':
         void this.toggleFullscreen();
+        break;
+      case 'n':
+      case 'N':
+        if (event.shiftKey && this.hasNext()) {
+          event.preventDefault();
+          this.playNextNow();
+        }
         break;
     }
   }

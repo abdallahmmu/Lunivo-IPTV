@@ -15,6 +15,7 @@
     [muted]="muted()"
     (loadedmetadata)="onLoadedMetadata()"
     (timeupdate)="onTimeUpdate()"
+    (progress)="onProgress()"
     (play)="onPlay()"
     (pause)="onPause()"
     (waiting)="onWaiting()"
@@ -69,7 +70,7 @@
         (click)="$event.stopPropagation(); closed.emit()"
         class="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-brand-deep-950/50 text-brand-cream hover:bg-brand-deep-950/70"
         aria-label="Close player"
-        title="Close player"
+        matTooltip="Close player"
       >
         <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
@@ -92,6 +93,50 @@
     }
   </div>
 
+  @if (nextUpCountdown(); as secs) {
+    <div
+      class="pointer-events-auto absolute bottom-24 right-4 z-10 flex items-center gap-3 rounded-xl border border-brand-deep-700 bg-brand-deep-900/95 p-3 pr-4 shadow-2xl backdrop-blur"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-xs font-bold tabular-nums text-brand-primary">
+        {{ secs }}
+      </div>
+      <div class="flex flex-col">
+        <p class="text-xs font-medium text-brand-cream">Next episode</p>
+        <div class="mt-1 flex gap-2">
+          <button
+            type="button"
+            (click)="playNextNow()"
+            class="rounded-full bg-brand-primary px-3 py-1 text-[11px] font-semibold text-brand-cream hover:brightness-110"
+          >
+            Play now
+          </button>
+          <button
+            type="button"
+            (click)="dismissNextUp()"
+            class="rounded-full border border-brand-deep-600 px-3 py-1 text-[11px] text-brand-deep-300 hover:border-brand-deep-400"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showStats()) {
+    <div
+      class="pointer-events-auto absolute left-4 top-16 z-10 flex flex-col gap-1 rounded-lg border border-brand-deep-700 bg-brand-deep-950/90 px-3 py-2 font-mono text-[11px] text-brand-deep-200 backdrop-blur"
+      (click)="$event.stopPropagation()"
+    >
+      @let s = playbackStats();
+      <p>Resolution: <span class="text-brand-cream">{{ s.resolution }}</span></p>
+      <p>Bitrate: <span class="text-brand-cream">{{ s.bitrate }}</span></p>
+      <p>Dropped frames: <span class="text-brand-cream">{{ s.droppedFrames }}</span></p>
+      <p>Buffer ahead: <span class="text-brand-cream">{{ s.bufferAhead }}</span></p>
+      <p>Speed: <span class="text-brand-cream">{{ s.rate }}</span></p>
+    </div>
+  }
+
   <div
     class="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-linear-to-t from-brand-deep-950/85 to-transparent p-3 opacity-0 transition"
     [class.opacity-100]="showControls()"
@@ -106,17 +151,25 @@
           [max]="duration() || 0"
           [value]="currentTime()"
           [style.--range-progress.%]="seekPercent()"
+          [style.--range-buffered.%]="bufferedPercent()"
           (input)="onSeek($event)"
           class="app-range flex-1"
           aria-label="Seek"
-          title="Seek"
+          matTooltip="Seek"
         />
-        <span class="w-10">{{ duration() | clockTime }}</span>
+        <button
+          type="button"
+          (click)="toggleTimeDisplay()"
+          class="w-12 text-left"
+          matTooltip="Toggle remaining time"
+        >
+          {{ showRemainingTime() ? '-' + ((duration() - currentTime()) | clockTime) : (duration() | clockTime) }}
+        </button>
       </div>
     }
 
     <div class="flex items-center gap-3">
-      <button type="button" (click)="togglePlay()" class="text-brand-cream" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [title]="playing() ? 'Pause' : 'Play'">
+      <button type="button" (click)="togglePlay()" class="text-brand-cream" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [matTooltip]="playing() ? 'Pause' : 'Play'">
         @if (playing()) {
           <svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
         } @else {
@@ -125,50 +178,93 @@
       </button>
 
       @if (!isLive()) {
-        <button type="button" (click)="seekBy(-seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [title]="'Back ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(-seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [matTooltip]="'Back ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
-        <button type="button" (click)="seekBy(seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [title]="'Forward ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(seekStep)" class="relative text-brand-cream" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [matTooltip]="'Forward ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5 -scale-x-100" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
       }
 
-      <button type="button" (click)="toggleMute()" class="text-brand-cream" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [title]="muted() ? 'Unmute' : 'Mute'">
+      <button type="button" (click)="toggleMute()" [class]="volume() > 1 ? 'text-brand-mint' : 'text-brand-cream'" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [matTooltip]="muted() ? 'Unmute' : 'Mute'">
         @if (muted() || volume() === 0) {
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M16.5 12 21 7.5l-1.5-1.5-4.5 4.5-4.5-4.5L9 7.5l4.5 4.5L9 16.5 10.5 18l4.5-4.5 4.5 4.5 1.5-1.5z" /></svg>
         } @else {
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4z" /></svg>
         }
       </button>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.05"
-        [value]="volume()"
-        [style.--range-progress.%]="volume() * 100"
-        (input)="onVolumeInput($event)"
-        class="app-range w-20"
-        aria-label="Volume"
-        title="Volume"
-      />
+      <div class="relative w-20">
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.05"
+          [value]="volume()"
+          [style.--range-progress.%]="(volume() / 2) * 100"
+          (input)="onVolumeInput($event)"
+          class="app-range w-full"
+          aria-label="Volume (past 100% boosts with Web Audio)"
+          matTooltip="Volume — past 100% boosts audio"
+        />
+        <!-- Marks the 100% boundary; the second half of the track is the 100–200% boost range. -->
+        <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-brand-cream/40"></div>
+      </div>
 
       <span class="flex-1"></span>
 
       @if (hasNext()) {
-        <button type="button" (click)="nextEpisode.emit()" class="text-brand-cream" aria-label="Next episode" title="Next episode">
+        <button type="button" (click)="nextEpisode.emit()" class="text-brand-cream" aria-label="Next episode" matTooltip="Next episode">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M6 5v14l10-7zM18 5v14h-2V5z" /></svg>
         </button>
       }
 
       @if (showEpisodesButton()) {
-        <button type="button" (click)="episodesToggle.emit()" class="text-brand-cream" aria-label="Episodes" title="Episodes">
+        <button type="button" (click)="episodesToggle.emit()" class="text-brand-cream" aria-label="Episodes" matTooltip="Episodes">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="10" width="18" height="4" rx="1" /><rect x="3" y="16" width="18" height="4" rx="1" />
           </svg>
         </button>
+      }
+
+      @if (subtitleTracks().length > 0) {
+        <div class="relative">
+          <button
+            type="button"
+            (click)="toggleSubtitleMenu()"
+            class="flex items-center gap-1 text-brand-cream"
+            aria-label="Subtitles"
+            matTooltip="Subtitles"
+          >
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h3M7 14h5M14 10h3M14 14h2" />
+            </svg>
+          </button>
+
+          @if (showSubtitleMenu()) {
+            <div class="absolute bottom-full right-0 mb-2 w-32 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+              <button
+                type="button"
+                (click)="setSubtitleTrack(null)"
+                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
+                [class]="activeSubtitleId() === null ? 'text-brand-primary' : 'text-brand-deep-200'"
+              >
+                Off
+              </button>
+              @for (track of subtitleTracks(); track track.id) {
+                <button
+                  type="button"
+                  (click)="setSubtitleTrack(track.id)"
+                  class="block w-full truncate px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
+                  [class]="activeSubtitleId() === track.id ? 'text-brand-primary' : 'text-brand-deep-200'"
+                >
+                  {{ track.label }}
+                </button>
+              }
+            </div>
+          }
+        </div>
       }
 
       @if (qualityLevels().length > 1) {
@@ -178,7 +274,7 @@
             (click)="toggleQualityMenu()"
             class="flex items-center gap-1 text-brand-cream"
             aria-label="Video quality"
-            title="Video quality"
+            matTooltip="Video quality"
           >
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
               <path
@@ -213,13 +309,45 @@
         </div>
       }
 
+      @if (!isLive()) {
+        <div class="relative">
+          <button
+            type="button"
+            (click)="toggleSpeedMenu()"
+            class="flex items-center gap-1 text-brand-cream"
+            aria-label="Playback speed"
+            matTooltip="Playback speed"
+          >
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 15a8 8 0 0 1 16 0" /><path d="M12 15l4-4" /><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" />
+            </svg>
+            <span class="text-xs">{{ playbackRate() }}×</span>
+          </button>
+
+          @if (showSpeedMenu()) {
+            <div class="absolute bottom-full right-0 mb-2 w-20 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+              @for (rate of playbackRates; track rate) {
+                <button
+                  type="button"
+                  (click)="setPlaybackRate(rate)"
+                  class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
+                  [class]="playbackRate() === rate ? 'text-brand-primary' : 'text-brand-deep-200'"
+                >
+                  {{ rate }}×
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+
       <div class="relative">
         <button
           type="button"
           (click)="toggleAspectMenu()"
           class="flex items-center gap-1 text-brand-cream"
           aria-label="Aspect ratio"
-          title="Aspect ratio"
+          matTooltip="Aspect ratio"
         >
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="5" width="18" height="14" rx="1.5" />
@@ -243,14 +371,26 @@
         }
       </div>
 
+      <button
+        type="button"
+        (click)="toggleStats()"
+        [class]="showStats() ? 'text-brand-primary' : 'text-brand-cream'"
+        aria-label="Playback stats"
+        matTooltip="Playback stats"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" stroke-linecap="round" />
+        </svg>
+      </button>
+
       @if (pipSupported) {
-        <button type="button" (click)="togglePip()" class="text-brand-cream" aria-label="Picture in picture" title="Picture in picture">
+        <button type="button" (click)="togglePip()" class="text-brand-cream" aria-label="Picture in picture" matTooltip="Picture in picture">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="14" rx="1.5" /><rect x="12" y="11" width="7" height="5" rx="1" fill="currentColor" stroke="none" />
           </svg>
         </button>
       }
-      <button type="button" (click)="toggleFullscreen()" class="text-brand-cream" aria-label="Fullscreen" title="Fullscreen">
+      <button type="button" (click)="toggleFullscreen()" class="text-brand-cream" aria-label="Fullscreen" matTooltip="Fullscreen">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
         </svg>

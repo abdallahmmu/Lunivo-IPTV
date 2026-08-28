@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@angular/cdk/overlay-prebuilt.css';
 
 /*
  * Brand palette — change these four values to re-theme the whole app.
@@ -65,4 +66,19 @@ body {
 button:not(:disabled),
 [role='button'] {
   cursor: pointer;
+}
+
+/*
+ * Angular Material tooltip, reskinned to match the app's own dropdown-menu look
+ * (used in place of native title="" attributes for richer, more reliable positioning).
+ */
+.mat-mdc-tooltip-surface {
+  background-color: var(--color-brand-deep-900) !important;
+  color: var(--color-brand-cream) !important;
+  border: 1px solid var(--color-brand-deep-700) !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-family: inherit !important;
+  padding: 0.375rem 0.625rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
 }

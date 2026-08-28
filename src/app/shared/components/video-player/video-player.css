@@ -1,14 +1,19 @@
 .app-range {
   --range-progress: 0%;
+  /* Falls back to --range-progress when unset (e.g. the volume slider), collapsing the
+     buffered segment to zero width instead of rendering an invalid/reversed gradient. */
+  --range-buffered: var(--range-progress);
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  /* Filled portion up to --range-progress, unfilled track after it. */
+  /* Three segments: played (brand), buffered-but-not-played (dim cream), untouched track. */
   background: linear-gradient(
     to right,
     var(--color-brand-primary) var(--range-progress),
-    rgba(255, 255, 255, 0.25) var(--range-progress)
+    rgba(242, 239, 231, 0.35) var(--range-progress),
+    rgba(242, 239, 231, 0.35) var(--range-buffered),
+    rgba(255, 255, 255, 0.25) var(--range-buffered)
   );
   cursor: pointer;
 }
