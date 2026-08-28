@@ -1,0 +1,196 @@
+@if (state().loading) {
+  <app-skeleton-loader variant="hero" />
+} @else if (state().error; as err) {
+  <app-error-state [error]="err" />
+} @else if (state().data; as info) {
+  <div class="flex flex-col gap-6">
+    <button type="button" (click)="goBack()" class="flex w-fit items-center gap-1.5 text-sm text-brand-deep-400 hover:text-brand-cream">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7" /></svg>
+      Back to Series
+    </button>
+
+    @if (playing() && selectedEpisode(); as episode) {
+      <app-video-player
+        [source]="playbackSource()"
+        [title]="episode.title"
+        [subtitle]="episodeSubtitle()"
+        [startPositionSecs]="resumePosition()"
+        [closable]="true"
+        [hasNext]="hasNextEpisode()"
+        [showEpisodesButton]="true"
+        (timeUpdate)="onTimeUpdate($event)"
+        (ended)="onEnded()"
+        (closed)="closePlayer()"
+        (nextEpisode)="onEnded()"
+        (episodesToggle)="toggleEpisodesPanel()"
+      >
+        <!--
+          Projected into app-video-player's own container so it's part of the
+          fullscreen surface (see video-player.html) and so the backdrop can sit
+          behind the panel for a click-outside-to-close interaction.
+        -->
+        @if (episodesPanelOpen() && selectedSeasonNumber(); as seasonNumber) {
+          <!-- Both stop above the control bar so play/pause/fullscreen/quality stay usable while the panel is open. -->
+          <div
+            class="absolute inset-x-0 top-0 bottom-16 z-10 bg-brand-deep-950/60"
+            (click)="$event.stopPropagation(); episodesPanelOpen.set(false)"
+          ></div>
+          <div
+            class="absolute right-0 top-0 bottom-16 z-20 w-full max-w-sm overflow-y-auto rounded-tr-xl bg-brand-deep-950/95 shadow-2xl backdrop-blur sm:rounded-tl-xl"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="sticky top-0 flex items-center justify-between border-b border-brand-deep-800 bg-brand-deep-950/95 px-4 py-3">
+              <span class="text-sm font-semibold text-brand-cream">Season {{ seasonNumber }}</span>
+              <button type="button" (click)="episodesPanelOpen.set(false)" class="text-brand-deep-400 hover:text-brand-cream" aria-label="Close episode list" title="Close episode list">
+                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
+            <div class="flex flex-col divide-y divide-brand-deep-800/80">
+              @for (item of episodesFor(seasonNumber); track item.id) {
+                <button
+                  type="button"
+                  (click)="selectEpisode(item, seasonNumber)"
+                  [title]="item.title"
+                  class="flex items-start gap-3 px-4 py-3 text-left transition hover:bg-brand-deep-900/70"
+                  [class]="item.id === episode.id ? 'bg-brand-primary/15' : ''"
+                >
+                  <span class="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-brand-deep-500">{{ item.episode_num }}</span>
+                  @if (item.info?.movie_image) {
+                    <img [src]="item.info!.movie_image" alt="" class="h-12 w-20 shrink-0 rounded object-cover" />
+                  }
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-xs font-medium text-brand-deep-100">{{ item.title }}</p>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      @if (item.info?.duration) {
+                        <p class="text-[11px] text-brand-deep-500">{{ item.info!.duration }}</p>
+                      }
+                      @if (episodeQuality(item); as q) {
+                        <span class="rounded bg-brand-deep-800 px-1 py-0.5 text-[9px] font-medium text-brand-mint">{{ q }}</span>
+                      }
+                      @if (item.container_extension) {
+                        <span class="rounded bg-brand-deep-800 px-1 py-0.5 text-[9px] uppercase text-brand-deep-400">{{ item.container_extension }}</span>
+                      }
+                    </div>
+                  </div>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </app-video-player>
+    } @else if (info.info; as meta) {
+      @if ($any(meta).backdrop_path?.[0] || $any(meta).cover) {
+        <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-brand-deep-900">
+          <img [src]="$any(meta).backdrop_path?.[0] || $any(meta).cover" alt="" class="h-full w-full object-cover opacity-60" />
+          <div class="absolute inset-0 bg-linear-to-t from-brand-deep-950 via-brand-deep-950/30 to-transparent"></div>
+        </div>
+      }
+    }
+
+    <div class="flex flex-col gap-4 md:flex-row">
+      @if ($any(info.info).cover) {
+        <img [src]="$any(info.info).cover" alt="" class="hidden w-40 shrink-0 rounded-lg shadow-lg md:block" />
+      }
+
+      <div class="flex flex-1 flex-col gap-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <h1 class="text-2xl font-semibold text-brand-cream">{{ $any(info.info).name }}</h1>
+          <button
+            type="button"
+            (click)="toggleFavorite()"
+            class="flex shrink-0 items-center gap-1.5 rounded-full border border-brand-deep-700 px-3.5 py-1.5 text-sm text-brand-deep-200 hover:border-brand-deep-500"
+          >
+            <svg viewBox="0 0 24 24" class="h-4 w-4" [attr.fill]="isFavorite() ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+              <path
+                d="M12 21s-6.7-4.35-9.3-8.2C1 10.1 1.6 6.6 4.6 5.1c2.4-1.2 5 .1 7.4 3 2.4-2.9 5-4.2 7.4-3 3 1.5 3.6 5 1.9 7.7C18.7 16.65 12 21 12 21z"
+              />
+            </svg>
+            {{ isFavorite() ? 'In Favorites' : 'Add to Favorites' }}
+          </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 text-sm text-brand-deep-400">
+          @if ($any(info.info).releaseDate) {
+            <span>{{ $any(info.info).releaseDate.slice(0, 4) }}</span>
+          }
+          @if ($any(info.info).rating | rating; as r) {
+            <span class="text-amber-400">★ {{ r }}</span>
+          }
+        </div>
+
+        @if ($any(info.info).genre) {
+          <p class="text-sm text-brand-deep-400">{{ $any(info.info).genre }}</p>
+        }
+        @if ($any(info.info).plot) {
+          <p class="max-w-3xl text-sm leading-relaxed text-brand-deep-300">{{ $any(info.info).plot }}</p>
+        }
+        @if ($any(info.info).cast) {
+          <p class="text-sm text-brand-deep-400"><span class="text-brand-deep-500">Cast:</span> {{ $any(info.info).cast }}</p>
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      @for (season of seasons(); track season.id) {
+        <div class="overflow-hidden rounded-xl border border-brand-deep-800/80">
+          <button
+            type="button"
+            (click)="toggleSeason(season.season_number)"
+            class="flex w-full items-center justify-between gap-3 bg-brand-deep-900/60 px-4 py-3 text-left"
+          >
+            <span class="font-medium text-brand-cream">{{ season.name || 'Season ' + season.season_number }}</span>
+            <span class="flex items-center gap-2 text-xs text-brand-deep-400">
+              {{ season.episode_count }} episodes
+              <svg
+                viewBox="0 0 24 24"
+                class="h-4 w-4 transition"
+                [class.rotate-180]="expandedSeason() === season.season_number"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+
+          @if (expandedSeason() === season.season_number) {
+            <div class="flex flex-col divide-y divide-brand-deep-800/80">
+              @for (episode of episodesFor(season.season_number); track episode.id) {
+                <button
+                  type="button"
+                  (click)="selectEpisode(episode, season.season_number)"
+                  [title]="episode.title"
+                  class="flex items-start gap-3 px-4 py-3 text-left transition hover:bg-brand-deep-900/50"
+                  [class]="selectedEpisode()?.id === episode.id ? 'bg-brand-primary/15' : ''"
+                >
+                  <span class="w-6 shrink-0 pt-0.5 text-sm tabular-nums text-brand-deep-500">{{ episode.episode_num }}</span>
+                  @if (episode.info?.movie_image) {
+                    <img [src]="episode.info!.movie_image" alt="" class="h-16 w-28 shrink-0 rounded-md object-cover" />
+                  }
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-brand-deep-100">{{ episode.title }}</p>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      @if (episode.info?.duration) {
+                        <p class="text-xs text-brand-deep-500">{{ episode.info!.duration }}</p>
+                      }
+                      @if (episodeQuality(episode); as q) {
+                        <span class="rounded bg-brand-deep-800 px-1 py-0.5 text-[10px] font-medium text-brand-mint">{{ q }}</span>
+                      }
+                      @if (episode.container_extension) {
+                        <span class="rounded bg-brand-deep-800 px-1 py-0.5 text-[10px] uppercase text-brand-deep-400">{{ episode.container_extension }}</span>
+                      }
+                    </div>
+                    @if (episode.info?.plot) {
+                      <p class="mt-1 line-clamp-2 text-xs text-brand-deep-500">{{ episode.info!.plot }}</p>
+                    }
+                  </div>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

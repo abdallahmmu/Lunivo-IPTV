@@ -1,0 +1,98 @@
+@if (state().loading) {
+  <app-skeleton-loader variant="hero" />
+} @else if (state().error; as err) {
+  <app-error-state [error]="err" />
+} @else if (state().data; as info) {
+  <div class="flex flex-col gap-6">
+    <button type="button" (click)="goBack()" class="flex w-fit items-center gap-1.5 text-sm text-brand-deep-400 hover:text-brand-cream">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 19-7-7 7-7" /></svg>
+      Back to Movies
+    </button>
+
+    @if (playing()) {
+      <app-video-player
+        [source]="playbackSource()"
+        [title]="info.info.name ?? info.movie_data.name"
+        [startPositionSecs]="resumePosition()"
+        [closable]="true"
+        (timeUpdate)="onTimeUpdate($event)"
+        (closed)="closePlayer()"
+      />
+    } @else {
+      <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-brand-deep-900">
+        @if (info.info.backdrop_path?.[0] || info.info.movie_image) {
+          <img [src]="info.info.backdrop_path?.[0] || info.info.movie_image" alt="" class="h-full w-full object-cover opacity-60" />
+        }
+        <div class="absolute inset-0 bg-linear-to-t from-brand-deep-950 via-brand-deep-950/30 to-transparent"></div>
+        <button
+          type="button"
+          (click)="play()"
+          class="absolute inset-0 flex items-center justify-center"
+          aria-label="Play movie"
+          title="Play movie"
+        >
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-primary text-brand-cream shadow-xl shadow-brand-primary/30 transition hover:scale-105">
+            <svg viewBox="0 0 24 24" class="h-7 w-7 translate-x-0.5" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+          </span>
+        </button>
+      </div>
+    }
+
+    <div class="flex flex-col gap-4 md:flex-row">
+      @if (info.info.movie_image) {
+        <img [src]="info.info.movie_image" alt="" class="hidden w-40 shrink-0 rounded-lg shadow-lg md:block" />
+      }
+
+      <div class="flex flex-1 flex-col gap-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <h1 class="text-2xl font-semibold text-brand-cream">{{ info.info.name ?? info.movie_data.name }}</h1>
+          <button
+            type="button"
+            (click)="toggleFavorite()"
+            class="flex shrink-0 items-center gap-1.5 rounded-full border border-brand-deep-700 px-3.5 py-1.5 text-sm text-brand-deep-200 hover:border-brand-deep-500"
+          >
+            <svg viewBox="0 0 24 24" class="h-4 w-4" [attr.fill]="isFavorite() ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+              <path
+                d="M12 21s-6.7-4.35-9.3-8.2C1 10.1 1.6 6.6 4.6 5.1c2.4-1.2 5 .1 7.4 3 2.4-2.9 5-4.2 7.4-3 3 1.5 3.6 5 1.9 7.7C18.7 16.65 12 21 12 21z"
+              />
+            </svg>
+            {{ isFavorite() ? 'In Favorites' : 'Add to Favorites' }}
+          </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 text-sm text-brand-deep-400">
+          @if (info.info.releasedate) {
+            <span>{{ info.info.releasedate.slice(0, 4) }}</span>
+          }
+          @if (info.info.rating | rating; as r) {
+            <span class="text-amber-400">★ {{ r }}</span>
+          }
+          @if (info.info.duration_secs) {
+            <span>{{ info.info.duration_secs | duration }}</span>
+          }
+          @if (qualityLabel(); as q) {
+            <span class="rounded bg-brand-deep-800 px-1.5 py-0.5 text-xs font-medium text-brand-mint">{{ q }}</span>
+          }
+          @if (info.movie_data.container_extension) {
+            <span class="rounded bg-brand-deep-800 px-1.5 py-0.5 text-xs uppercase text-brand-deep-400" title="Container format">{{ info.movie_data.container_extension }}</span>
+          }
+        </div>
+
+        @if (info.info.genre) {
+          <p class="text-sm text-brand-deep-400">{{ info.info.genre }}</p>
+        }
+
+        @if (info.info.plot || info.info.description) {
+          <p class="max-w-3xl text-sm leading-relaxed text-brand-deep-300">{{ info.info.plot || info.info.description }}</p>
+        }
+
+        @if (info.info.cast) {
+          <p class="text-sm text-brand-deep-400"><span class="text-brand-deep-500">Cast:</span> {{ info.info.cast }}</p>
+        }
+        @if (info.info.director) {
+          <p class="text-sm text-brand-deep-400"><span class="text-brand-deep-500">Director:</span> {{ info.info.director }}</p>
+        }
+      </div>
+    </div>
+  </div>
+}

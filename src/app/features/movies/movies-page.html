@@ -1,0 +1,51 @@
+<div class="flex flex-col gap-4">
+  <h1 class="text-xl font-semibold text-brand-cream">Movies</h1>
+
+  <app-category-tabs [categories]="categories()" [activeId]="selectedCategoryId()" (select)="selectCategory($event)" />
+
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="sm:max-w-xs sm:flex-1">
+      <app-search-bar placeholder="Search movies…" [value]="searchQuery()" (valueChange)="onSearch($event)" />
+    </div>
+    <div class="flex gap-1.5 text-sm">
+      @for (opt of sortOptions; track opt.key) {
+        <button
+          type="button"
+          (click)="onSort(opt.key)"
+          class="rounded-full px-3 py-1 transition"
+          [class]="sortKey() === opt.key ? 'bg-brand-primary text-brand-cream' : 'bg-brand-deep-800 text-brand-deep-300 hover:bg-brand-deep-700'"
+        >
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading() && !visibleItems().length) {
+    <app-skeleton-loader variant="poster-grid" [count]="18" />
+  } @else if (error(); as err) {
+    <app-error-state [error]="err" (retry)="retry()" />
+  } @else if (!visibleItems().length) {
+    <app-empty-state icon="🎬" title="No movies found" subtitle="Try a different category or search term." />
+  } @else {
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      @for (movie of visibleItems(); track movie.stream_id) {
+        <app-poster-card
+          [title]="movie.name"
+          [image]="movie.stream_icon"
+          [rating]="movie.rating"
+          [extension]="movie.container_extension"
+          [isFavorite]="isFavorite(movie)"
+          (activate)="open(movie)"
+          (favoriteToggle)="toggleFavorite(movie)"
+        />
+      }
+    </div>
+
+    @if (hasMore()) {
+      <div appVisibleOnScroll (visible)="loadMore()" class="flex justify-center py-6">
+        <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-deep-700 border-t-brand-deep-300"></div>
+      </div>
+    }
+  }
+</div>

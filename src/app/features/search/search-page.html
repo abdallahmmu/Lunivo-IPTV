@@ -1,0 +1,53 @@
+<div class="flex flex-col gap-5">
+  <h1 class="text-xl font-semibold text-brand-cream">Search</h1>
+
+  <div class="max-w-md">
+    <app-search-bar [value]="q()" (valueChange)="onSearch($event)" />
+  </div>
+
+  @if (q().trim().length < 2) {
+    <app-empty-state icon="🔎" title="Search your catalog" subtitle="Type at least 2 characters to search Live TV, Movies, and Series." />
+  } @else if (search.indexing()) {
+    <div class="flex items-center gap-3 py-10 text-sm text-brand-deep-400">
+      <div class="h-5 w-5 animate-spin rounded-full border-2 border-brand-deep-700 border-t-brand-deep-300"></div>
+      Indexing catalog…
+    </div>
+  } @else if (search.results(); as results) {
+    @if (!results.live.length && !results.movies.length && !results.series.length) {
+      <app-empty-state icon="🔎" title="No results" [subtitle]="'Nothing matched “' + q() + '”.'" />
+    } @else {
+      @if (results.live.length) {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-lg font-semibold text-brand-cream">Live TV</h2>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            @for (item of results.live; track item.stream_id) {
+              <app-poster-card [title]="item.name" [image]="item.stream_icon" (activate)="openLive(item)" />
+            }
+          </div>
+        </section>
+      }
+
+      @if (results.movies.length) {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-lg font-semibold text-brand-cream">Movies</h2>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            @for (item of results.movies; track item.stream_id) {
+              <app-poster-card [title]="item.name" [image]="item.stream_icon" [rating]="item.rating" (activate)="openMovie(item)" />
+            }
+          </div>
+        </section>
+      }
+
+      @if (results.series.length) {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-lg font-semibold text-brand-cream">Series</h2>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            @for (item of results.series; track item.series_id) {
+              <app-poster-card [title]="item.name" [image]="item.cover" [rating]="item.rating" (activate)="openSeries(item)" />
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

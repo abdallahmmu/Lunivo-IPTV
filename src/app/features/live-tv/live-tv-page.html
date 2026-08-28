@@ -1,0 +1,63 @@
+<div class="flex flex-col gap-5 lg:h-[calc(100dvh-5.5rem)] lg:flex-row">
+  <div class="flex min-w-0 flex-1 flex-col gap-4">
+    <app-video-player
+      [source]="playbackSource()"
+      [isLive]="true"
+      [title]="selectedChannel()?.name ?? null"
+      class="block"
+    />
+
+    @if (selectedChannel(); as channel) {
+      <div class="flex flex-col gap-1">
+        <h1 class="text-lg font-semibold text-brand-cream">{{ channel.name }}</h1>
+        @if (nowNext(); as epg) {
+          @if (epg.now || epg.next) {
+            <div class="flex flex-wrap gap-6 text-sm text-brand-deep-400">
+              @if (epg.now; as now) {
+                <div>
+                  <span class="font-medium text-brand-deep-200">Now:</span> {{ now.title }}
+                  <span class="text-brand-deep-500">({{ now.start | date: 'shortTime' }} – {{ now.end | date: 'shortTime' }})</span>
+                </div>
+              }
+              @if (epg.next; as next) {
+                <div>
+                  <span class="font-medium text-brand-deep-200">Next:</span> {{ next.title }}
+                  <span class="text-brand-deep-500">({{ next.start | date: 'shortTime' }})</span>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    } @else {
+      <app-empty-state icon="📺" title="Pick a channel to start watching" />
+    }
+  </div>
+
+  <div class="flex min-h-0 w-full flex-col gap-3 lg:w-96 lg:shrink-0">
+    <app-category-tabs [categories]="categories()" [activeId]="selectedCategoryId()" (select)="selectCategory($event)" />
+    <app-search-bar placeholder="Search channels…" [value]="searchQuery()" (valueChange)="searchQuery.set($event)" />
+
+    @if (streamsLoading()) {
+      <app-skeleton-loader variant="list-rows" [count]="10" />
+    } @else if (streamsError(); as err) {
+      <app-error-state [error]="err" (retry)="retryStreams()" />
+    } @else if (!filteredStreams().length) {
+      <app-empty-state icon="🔍" title="No channels found" />
+    } @else {
+      <cdk-virtual-scroll-viewport itemSize="56" class="min-h-[24rem] flex-1 lg:min-h-0">
+        <div *cdkVirtualFor="let channel of filteredStreams(); trackBy: trackByStreamId" class="py-0.5">
+          <app-channel-list-item
+            [name]="channel.name"
+            [logo]="channel.stream_icon"
+            [channelNumber]="channel.num"
+            [active]="selectedChannel()?.stream_id === channel.stream_id"
+            [isFavorite]="isFavorite(channel)"
+            (activate)="selectChannel(channel)"
+            (favoriteToggle)="toggleFavorite(channel)"
+          />
+        </div>
+      </cdk-virtual-scroll-viewport>
+    }
+  </div>
+</div>

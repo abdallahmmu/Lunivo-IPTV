@@ -1,0 +1,58 @@
+<div class="flex max-w-2xl flex-col gap-6">
+  <h1 class="text-xl font-semibold text-brand-cream">Settings</h1>
+
+  <section class="flex flex-col gap-3 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Account</h2>
+    <dl class="grid grid-cols-2 gap-y-2.5 text-sm">
+      <dt class="text-brand-deep-500">Server</dt>
+      <dd class="text-brand-deep-200">{{ auth.credentials()?.serverUrl }}</dd>
+      <dt class="text-brand-deep-500">Username</dt>
+      <dd class="text-brand-deep-200">{{ auth.credentials()?.username }}</dd>
+      <dt class="text-brand-deep-500">Status</dt>
+      <dd class="capitalize text-brand-deep-200">{{ auth.accountStatus() }}</dd>
+      @if (auth.expiryDate(); as exp) {
+        <dt class="text-brand-deep-500">Expires</dt>
+        <dd class="text-brand-deep-200">{{ exp | date: 'medium' }}</dd>
+      }
+      <dt class="text-brand-deep-500">Max connections</dt>
+      <dd class="text-brand-deep-200">{{ auth.userInfo()?.max_connections }}</dd>
+      <dt class="text-brand-deep-500">Active connections</dt>
+      <dd class="text-brand-deep-200">{{ auth.userInfo()?.active_cons }}</dd>
+      @if (auth.serverInfo(); as server) {
+        <dt class="text-brand-deep-500">Panel</dt>
+        <dd class="text-brand-deep-200">{{ server.panel }} {{ server.version }}</dd>
+      }
+    </dl>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Data</h2>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" (click)="refreshData()" class="rounded-full bg-brand-primary px-4 py-1.5 text-sm font-medium text-brand-cream hover:brightness-110">
+        Refresh IPTV data
+      </button>
+      @if (refreshed()) {
+        <span class="text-xs text-emerald-400">Cache cleared — content will reload fresh.</span>
+      }
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" (click)="clearWatchHistory()" class="rounded-full border border-brand-deep-700 px-4 py-1.5 text-sm text-brand-deep-200 hover:border-brand-deep-500">
+        Clear watch history
+      </button>
+      @if (clearedHistory()) {
+        <span class="text-xs text-emerald-400">Watch history cleared.</span>
+      }
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-2 rounded-xl border border-brand-deep-800/80 bg-brand-deep-900/50 p-5 text-sm text-brand-deep-400">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-deep-400">Security &amp; limitations</h2>
+    <p>This app talks directly to your IPTV server from your browser — nothing is sent to any other server.</p>
+    <p>If you didn't choose "Remember me" at login, your password is kept only in this tab's session storage and is cleared when you close it.</p>
+    <p>Some movies/episodes are encoded as MKV, which most browsers can't play natively — you'll get an "open externally" option for those.</p>
+  </section>
+
+  <button type="button" (click)="logout()" class="w-fit rounded-full border border-red-900/60 px-5 py-2 text-sm font-medium text-red-400 hover:bg-red-950/40">
+    Disconnect
+  </button>
+</div>

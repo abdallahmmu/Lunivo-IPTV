@@ -1,5 +1,5 @@
 {
-  "name": "iptv-life-easy",
+  "name": "lunivo-iptv",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -11,12 +11,14 @@
   "private": true,
   "packageManager": "npm@11.13.0",
   "dependencies": {
+    "@angular/cdk": "^22.1.4",
     "@angular/common": "^22.0.0",
     "@angular/compiler": "^22.0.0",
     "@angular/core": "^22.0.0",
     "@angular/forms": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "hls.js": "^1.7.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

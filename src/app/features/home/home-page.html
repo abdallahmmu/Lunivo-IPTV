@@ -1,0 +1,89 @@
+<div class="flex flex-col gap-8">
+  <section class="flex flex-col justify-between gap-4 rounded-2xl border border-brand-deep-800/80 bg-linear-to-br from-brand-deep/50 via-brand-deep-900 to-brand-deep-950 p-5 sm:flex-row sm:items-center">
+    <div>
+      <p class="text-sm text-brand-deep-400">Welcome back,</p>
+      <h1 class="text-xl font-semibold text-brand-cream">{{ auth.credentials()?.username }}</h1>
+    </div>
+    <div class="flex flex-wrap gap-4 text-sm">
+      <div>
+        <p class="text-brand-deep-500">Status</p>
+        <p class="font-medium capitalize text-emerald-400">{{ auth.accountStatus() }}</p>
+      </div>
+      @if (auth.expiryDate(); as exp) {
+        <div>
+          <p class="text-brand-deep-500">Expires</p>
+          <p class="font-medium text-brand-deep-200">{{ exp | date: 'mediumDate' }}</p>
+        </div>
+      }
+      <div>
+        <p class="text-brand-deep-500">Max connections</p>
+        <p class="font-medium text-brand-deep-200">{{ auth.userInfo()?.max_connections }}</p>
+      </div>
+    </div>
+  </section>
+
+  @if (continueWatching().length) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-brand-cream">Continue Watching</h2>
+      <div class="scrollbar-none -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+        @for (item of continueWatching(); track item.kind + item.id + (item.episodeId ?? '')) {
+          <div class="group relative w-36 shrink-0 sm:w-44">
+            <app-poster-card
+              [title]="item.name"
+              [subtitle]="item.seriesName ? 'S' + item.seasonNumber + ' · E' + item.episodeNumber : null"
+              [image]="item.image"
+              [progressPercent]="progressPercent(item)"
+              (activate)="open(item, true)"
+            />
+            <button
+              type="button"
+              (click)="removeFromHistory(item)"
+              class="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-brand-deep-950/60 text-xs text-brand-cream opacity-0 transition hover:bg-brand-deep-950/80 group-hover:opacity-100"
+              aria-label="Remove from Continue Watching"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (favoriteItems().length) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-brand-cream">Your Favorites</h2>
+      <div class="scrollbar-none -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+        @for (item of favoriteItems(); track item.kind + item.id) {
+          <div class="w-36 shrink-0 sm:w-44">
+            <app-poster-card [title]="item.name" [image]="item.image" [isFavorite]="true" (activate)="open(item)" />
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (recentlyWatched().length) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-brand-cream">Recently Watched</h2>
+      <div class="scrollbar-none -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+        @for (item of recentlyWatched().slice(0, 12); track item.kind + item.id + (item.episodeId ?? '')) {
+          <div class="group relative w-36 shrink-0 sm:w-44">
+            <app-poster-card [title]="item.name" [image]="item.image" (activate)="open(item)" />
+            <button
+              type="button"
+              (click)="removeFromHistory(item)"
+              class="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-brand-deep-950/60 text-xs text-brand-cream opacity-0 transition hover:bg-brand-deep-950/80 group-hover:opacity-100"
+              aria-label="Remove from Recently Watched"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (!continueWatching().length && !favoriteItems().length && !recentlyWatched().length) {
+    <app-empty-state icon="👋" title="Let's find something to watch" subtitle="Browse Live TV, Movies, or Series from the sidebar to get started." />
+  }
+</div>
