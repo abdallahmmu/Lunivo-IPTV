@@ -9,6 +9,8 @@
   <video
     #video
     class="h-full w-full"
+    [style.object-fit]="selectedAspectRatio().fit"
+    [style.aspect-ratio]="selectedAspectRatio().ratio ?? 'auto'"
     playsinline
     [muted]="muted()"
     (loadedmetadata)="onLoadedMetadata()"
@@ -210,6 +212,36 @@
           }
         </div>
       }
+
+      <div class="relative">
+        <button
+          type="button"
+          (click)="toggleAspectMenu()"
+          class="flex items-center gap-1 text-brand-cream"
+          aria-label="Aspect ratio"
+          title="Aspect ratio"
+        >
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="5" width="18" height="14" rx="1.5" />
+            <rect x="7.5" y="8.5" width="9" height="7" rx="0.75" />
+          </svg>
+        </button>
+
+        @if (showAspectMenu()) {
+          <div class="absolute bottom-full right-0 mb-2 w-40 overflow-hidden rounded-lg border border-brand-deep-700 bg-brand-deep-900/95 py-1 shadow-xl backdrop-blur">
+            @for (option of aspectRatioOptions; track option.id) {
+              <button
+                type="button"
+                (click)="setAspectRatio(option)"
+                class="block w-full px-3 py-1.5 text-left text-xs hover:bg-brand-deep-800"
+                [class]="selectedAspectRatio().id === option.id ? 'text-brand-primary' : 'text-brand-deep-200'"
+              >
+                {{ option.label }}
+              </button>
+            }
+          </div>
+        }
+      </div>
 
       @if (pipSupported) {
         <button type="button" (click)="togglePip()" class="text-brand-cream" aria-label="Picture in picture" title="Picture in picture">

@@ -6,6 +6,7 @@ import {
   afterNextRender,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -14,11 +15,13 @@ import {
 import Hls from 'hls.js';
 import { AppError } from '../../../core/models/common.models';
 import { PlaybackSource } from '../../../core/services/stream.service';
+import { StorageService } from '../../../core/services/storage.service';
 import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 
 const TIME_UPDATE_EMIT_INTERVAL_MS = 5000;
 /** Seconds moved per rewind/forward tap — surfaced in the UI so the label always matches the actual behavior. */
 export const SEEK_STEP_SECONDS = 10;
+const ASPECT_RATIO_STORAGE_KEY = 'video-aspect-ratio';
 
 export interface QualityLevel {
   /** hls.js level index; -1 is reserved for "Auto" (ABR). */
@@ -26,6 +29,31 @@ export interface QualityLevel {
   label: string;
   height: number;
 }
+
+export interface AspectRatioOption {
+  id: string;
+  label: string;
+  /** CSS `aspect-ratio` value for the video element, e.g. "16 / 9"; null keeps the source's own intrinsic ratio. */
+  ratio: string | null;
+  fit: 'contain' | 'cover' | 'fill';
+}
+
+/**
+ * Standard player aspect-ratio presets. "Auto" and "Fill Screen" don't force a shape — they just change
+ * how the video maps onto the existing 16:9 player frame (contain vs. crop-to-fill). The named ratios
+ * (matching VLC's own aspect-ratio menu: 16:9, 4:3, 21:9 cinematic/anamorphic, 1:1, 9:16) reshape the
+ * visible video area to that ratio, centered within the frame, and crop to fill it.
+ */
+export const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
+  { id: 'auto', label: 'Auto (Original)', ratio: null, fit: 'contain' },
+  { id: 'fill', label: 'Fill Screen (Crop)', ratio: null, fit: 'cover' },
+  { id: 'stretch', label: 'Stretch', ratio: null, fit: 'fill' },
+  { id: '16:9', label: '16:9 Widescreen', ratio: '16 / 9', fit: 'cover' },
+  { id: '4:3', label: '4:3 Standard', ratio: '4 / 3', fit: 'cover' },
+  { id: '21:9', label: '21:9 Cinematic', ratio: '21 / 9', fit: 'cover' },
+  { id: '1:1', label: '1:1 Square', ratio: '1 / 1', fit: 'cover' },
+  { id: '9:16', label: '9:16 Vertical', ratio: '9 / 16', fit: 'cover' },
+];
 
 @Component({
   selector: 'app-video-player',
@@ -76,6 +104,12 @@ export class VideoPlayer implements OnDestroy {
   protected readonly qualityLevels = signal<QualityLevel[]>([]);
   protected readonly currentLevelIndex = signal(-1);
   protected readonly showQualityMenu = signal(false);
+
+  protected readonly aspectRatioOptions = ASPECT_RATIO_OPTIONS;
+  protected readonly showAspectMenu = signal(false);
+
+  private readonly storage = inject(StorageService);
+  protected readonly selectedAspectRatio = signal<AspectRatioOption>(this.loadAspectRatioPreference());
 
   private hls: Hls | null = null;
   private lastEmittedAt = 0;
@@ -279,6 +313,21 @@ export class VideoPlayer implements OnDestroy {
 
   protected toggleQualityMenu(): void {
     this.showQualityMenu.update((v) => !v);
+  }
+
+  protected toggleAspectMenu(): void {
+    this.showAspectMenu.update((v) => !v);
+  }
+
+  protected setAspectRatio(option: AspectRatioOption): void {
+    this.selectedAspectRatio.set(option);
+    this.showAspectMenu.set(false);
+    this.storage.set(ASPECT_RATIO_STORAGE_KEY, option.id);
+  }
+
+  private loadAspectRatioPreference(): AspectRatioOption {
+    const savedId = this.storage.get<string>(ASPECT_RATIO_STORAGE_KEY);
+    return ASPECT_RATIO_OPTIONS.find((o) => o.id === savedId) ?? ASPECT_RATIO_OPTIONS[0];
   }
 
   protected setQuality(index: number): void {
