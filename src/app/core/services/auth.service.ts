@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AccountStatus, IptvConnection, IptvCredentials, XtreamAuthResponse } from '../models/auth.models';
 import { AppError } from '../models/common.models';
-import { isMixedContentBlocked, normalizeServerUrl } from '../utils/url.util';
+import { normalizeServerUrl, playerApiRequest } from '../utils/url.util';
 import { mapAuthError } from '../utils/xtream-error.util';
 import { CacheService } from './cache.service';
 import { StorageService } from './storage.service';
@@ -51,28 +51,14 @@ export class AuthService {
       return { error: { message: (e as Error).message, code: 'invalid_url' } };
     }
 
-    if (isMixedContentBlocked(serverUrl)) {
-      return {
-        error: {
-          message:
-            'This app is running over HTTPS but that IPTV server only supports HTTP. Browsers block this ' +
-            '"mixed content" combination — try opening this app over HTTP, or use a server URL that supports HTTPS.',
-          code: 'mixed_content',
-        },
-      };
-    }
-
     const credentials: IptvCredentials = { serverUrl, username: rawCredentials.username.trim(), password: rawCredentials.password };
     if (!credentials.username || !credentials.password) {
       return { error: { message: 'Username and password are required.', code: 'invalid_credentials' } };
     }
 
     try {
-      const auth = await firstValueFrom(
-        this.http.get<XtreamAuthResponse>(`${serverUrl}/player_api.php`, {
-          params: { username: credentials.username, password: credentials.password },
-        }),
-      );
+      const { url, params } = playerApiRequest(serverUrl, { username: credentials.username, password: credentials.password });
+      const auth = await firstValueFrom(this.http.get<XtreamAuthResponse>(url, { params }));
 
       if (!auth?.user_info || String(auth.user_info.auth) !== '1') {
         return { error: { message: 'Invalid username or password.', code: 'invalid_credentials' } };

@@ -38,6 +38,20 @@ export function isRunningOverHttps(): boolean {
   return typeof window !== 'undefined' && window.location.protocol === 'https:';
 }
 
+/**
+ * Resolves where an HttpClient call to player_api.php should actually go: directly to
+ * the server normally, or through our own same-origin /api/proxy (which forwards it
+ * server-side) when this page is https and the server is http — mixed content would
+ * otherwise block that call before it ever left the browser. Merge the returned
+ * `params` straight into the request; the proxy only ever forwards to player_api.php.
+ */
+export function playerApiRequest(serverUrl: string, params: Record<string, string>): { url: string; params: Record<string, string> } {
+  if (isMixedContentBlocked(serverUrl)) {
+    return { url: '/api/proxy', params: { ...params, target: serverUrl } };
+  }
+  return { url: `${serverUrl}/player_api.php`, params };
+}
+
 export function joinUrl(base: string, ...parts: Array<string | number>): string {
   const segments = parts.map((p) => String(p).replace(/^\/+|\/+$/g, ''));
   return [base.replace(/\/+$/, ''), ...segments].join('/');

@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { IptvCredentials } from '../models/auth.models';
@@ -7,6 +7,7 @@ import { ShortEpgResponse } from '../models/epg.models';
 import { LiveStream } from '../models/live.models';
 import { SeriesInfo, SeriesListItem } from '../models/series.models';
 import { VodInfo, VodStream } from '../models/vod.models';
+import { playerApiRequest } from '../utils/url.util';
 import { AuthService } from './auth.service';
 import { CacheService } from './cache.service';
 
@@ -96,11 +97,13 @@ export class IptvApiService {
 
   private action<T>(action: string, extraParams: Record<string, string> = {}): Observable<T> {
     const creds = this.requireCredentials();
-    let params = new HttpParams().set('username', creds.username).set('password', creds.password).set('action', action);
-    for (const [key, value] of Object.entries(extraParams)) {
-      params = params.set(key, value);
-    }
-    return this.http.get<T>(`${creds.serverUrl}/player_api.php`, { params });
+    const { url, params } = playerApiRequest(creds.serverUrl, {
+      username: creds.username,
+      password: creds.password,
+      action,
+      ...extraParams,
+    });
+    return this.http.get<T>(url, { params });
   }
 
   private requireCredentials(): IptvCredentials {
