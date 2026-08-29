@@ -1,6 +1,9 @@
 <div
   #container
-  class="group/player relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-brand-primary outline-none"
+  [class]="
+    'group/player flex items-center justify-center overflow-hidden bg-brand-primary outline-none ' +
+    (fullscreen() ? 'fixed inset-0 z-60 h-dvh w-screen' : 'relative aspect-video w-full rounded-xl')
+  "
   tabindex="0"
   (keydown)="onKeydown($event)"
   (mousemove)="wakeControls()"
@@ -61,7 +64,7 @@
   }
 
   <div
-    class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-brand-primary/70 to-transparent p-4 opacity-0 transition"
+    class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-brand-primary/70 to-transparent pb-4 pt-[calc(1rem+var(--safe-top))] pl-[calc(1rem+var(--safe-left))] pr-[calc(1rem+var(--safe-right))] opacity-0 transition"
     [class.opacity-100]="showControls()"
   >
     @if (closable()) {
@@ -80,9 +83,9 @@
 
     @if (title(); as t) {
       <div class="text-right">
-        <p class="text-sm font-medium text-brand-cyan">{{ t }}</p>
+        <p dir="auto" class="text-sm font-medium text-brand-cyan">{{ t }}</p>
         @if (subtitle(); as s) {
-          <p class="text-xs text-brand-cyan">{{ s }}</p>
+          <p dir="auto" class="text-xs text-brand-cyan">{{ s }}</p>
         }
         @if (isLive()) {
           <span class="mt-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-brand-cyan">
@@ -129,16 +132,16 @@
       (click)="$event.stopPropagation()"
     >
       @let s = playbackStats();
-      <p>Resolution: <span class="text-brand-cyan">{{ s.resolution }}</span></p>
-      <p>Bitrate: <span class="text-brand-cyan">{{ s.bitrate }}</span></p>
-      <p>Dropped frames: <span class="text-brand-cyan">{{ s.droppedFrames }}</span></p>
-      <p>Buffer ahead: <span class="text-brand-cyan">{{ s.bufferAhead }}</span></p>
-      <p>Speed: <span class="text-brand-cyan">{{ s.rate }}</span></p>
+      <p>Resolution: <span class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70">{{ s.resolution }}</span></p>
+      <p>Bitrate: <span class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70">{{ s.bitrate }}</span></p>
+      <p>Dropped frames: <span class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70">{{ s.droppedFrames }}</span></p>
+      <p>Buffer ahead: <span class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70">{{ s.bufferAhead }}</span></p>
+      <p>Speed: <span class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70">{{ s.rate }}</span></p>
     </div>
   }
 
   <div
-    class="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-linear-to-t from-brand-primary/85 to-transparent p-3 opacity-0 transition"
+    class="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-linear-to-t from-brand-primary/85 to-transparent pt-3 pb-[calc(0.75rem+var(--safe-bottom))] pl-[calc(0.75rem+var(--safe-left))] pr-[calc(0.75rem+var(--safe-right))] opacity-0 transition"
     [class.opacity-100]="showControls()"
     (click)="$event.stopPropagation()"
   >
@@ -168,8 +171,12 @@
       </div>
     }
 
-    <div class="flex items-center gap-3">
-      <button type="button" (click)="togglePlay()" class="text-brand-cyan" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [matTooltip]="playing() ? 'Pause' : 'Play'">
+    <!-- flex-wrap is a safety net, not the primary layout: on mobile we trim the row below to
+         fit in one line (hidden volume slider/stats/PiP, icon-only quality & speed), but if a
+         narrow enough device still overflows, controls wrap to a second line instead of
+         disappearing off-screen unreachable — which is what was happening to Fullscreen before. -->
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3">
+      <button type="button" (click)="togglePlay()" class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" [attr.aria-label]="playing() ? 'Pause' : 'Play'" [matTooltip]="playing() ? 'Pause' : 'Play'">
         @if (playing()) {
           <svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
         } @else {
@@ -178,24 +185,32 @@
       </button>
 
       @if (!isLive()) {
-        <button type="button" (click)="seekBy(-seekStep)" class="relative text-brand-cyan" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [matTooltip]="'Back ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(-seekStep)" class="relative rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" [attr.aria-label]="'Back ' + seekStep + ' seconds'" [matTooltip]="'Back ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
-        <button type="button" (click)="seekBy(seekStep)" class="relative text-brand-cyan" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [matTooltip]="'Forward ' + seekStep + ' seconds'">
+        <button type="button" (click)="seekBy(seekStep)" class="relative rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" [attr.aria-label]="'Forward ' + seekStep + ' seconds'" [matTooltip]="'Forward ' + seekStep + ' seconds'">
           <svg viewBox="0 0 24 24" class="h-5 w-5 -scale-x-100" fill="currentColor"><path d="M11 5V1L5 7l6 6V9c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H3c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
           <span class="pointer-events-none absolute inset-x-0 top-2.25 text-center text-[8px] font-bold leading-none">{{ seekStep }}</span>
         </button>
       }
 
-      <button type="button" (click)="toggleMute()" [class]="volume() > 1 ? 'text-brand-sky' : 'text-brand-cyan'" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [matTooltip]="muted() ? 'Unmute' : 'Mute'">
+      <button
+        type="button"
+        (click)="toggleMute()"
+        [class]="'rounded-full p-2 transition hover:bg-brand-primary/70 ' + (volume() > 1 ? 'text-brand-sky' : 'text-brand-cyan')"
+        [attr.aria-label]="muted() ? 'Unmute' : 'Mute'"
+        [matTooltip]="muted() ? 'Unmute' : 'Mute'"
+      >
         @if (muted() || volume() === 0) {
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M16.5 12 21 7.5l-1.5-1.5-4.5 4.5-4.5-4.5L9 7.5l4.5 4.5L9 16.5 10.5 18l4.5-4.5 4.5 4.5 1.5-1.5z" /></svg>
         } @else {
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4z" /></svg>
         }
       </button>
-      <div class="relative w-20">
+      <!-- Hidden on mobile — phones already have hardware volume buttons, and a drag slider this
+           small is a poor touch target; it's also the single biggest space cost in this row. -->
+      <div [class]="'relative w-20 ' + (fullscreen() ? 'block' : 'hidden sm:block')">
         <input
           type="range"
           min="0"
@@ -215,13 +230,13 @@
       <span class="flex-1"></span>
 
       @if (hasNext()) {
-        <button type="button" (click)="nextEpisode.emit()" class="text-brand-cyan" aria-label="Next episode" matTooltip="Next episode">
+        <button type="button" (click)="nextEpisode.emit()" class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" aria-label="Next episode" matTooltip="Next episode">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M6 5v14l10-7zM18 5v14h-2V5z" /></svg>
         </button>
       }
 
       @if (showEpisodesButton()) {
-        <button type="button" (click)="episodesToggle.emit()" class="text-brand-cyan" aria-label="Episodes" matTooltip="Episodes">
+        <button type="button" (click)="episodesToggle.emit()" class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" aria-label="Episodes" matTooltip="Episodes">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="10" width="18" height="4" rx="1" /><rect x="3" y="16" width="18" height="4" rx="1" />
           </svg>
@@ -233,7 +248,7 @@
           <button
             type="button"
             (click)="toggleSubtitleMenu()"
-            class="flex items-center gap-1 text-brand-cyan"
+            class="flex items-center gap-1 rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70"
             aria-label="Subtitles"
             matTooltip="Subtitles"
           >
@@ -272,7 +287,7 @@
           <button
             type="button"
             (click)="toggleQualityMenu()"
-            class="flex items-center gap-1 text-brand-cyan"
+            class="flex items-center gap-1 rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70"
             aria-label="Video quality"
             matTooltip="Video quality"
           >
@@ -281,7 +296,7 @@
                 d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2L10 21h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"
               />
             </svg>
-            <span class="text-xs">{{ currentQualityLabel() }}</span>
+            <span [class]="fullscreen() ? 'text-xs inline' : 'hidden text-xs sm:inline'">{{ currentQualityLabel() }}</span>
           </button>
 
           @if (showQualityMenu()) {
@@ -314,14 +329,14 @@
           <button
             type="button"
             (click)="toggleSpeedMenu()"
-            class="flex items-center gap-1 text-brand-cyan"
+            class="flex items-center gap-1 rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70"
             aria-label="Playback speed"
             matTooltip="Playback speed"
           >
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 15a8 8 0 0 1 16 0" /><path d="M12 15l4-4" /><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" />
             </svg>
-            <span class="text-xs">{{ playbackRate() }}×</span>
+            <span [class]="fullscreen() ? 'text-xs inline' : 'hidden text-xs sm:inline'">{{ playbackRate() }}×</span>
           </button>
 
           @if (showSpeedMenu()) {
@@ -345,7 +360,7 @@
         <button
           type="button"
           (click)="toggleAspectMenu()"
-          class="flex items-center gap-1 text-brand-cyan"
+          class="flex items-center gap-1 rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70"
           aria-label="Aspect ratio"
           matTooltip="Aspect ratio"
         >
@@ -371,10 +386,16 @@
         }
       </div>
 
+      <!-- Debug/secondary features hidden on mobile, purely to make room — mostly a desktop-power-user
+           surface (stats overlay) or already redundant with the OS-level PiP gesture on many devices. -->
       <button
         type="button"
         (click)="toggleStats()"
-        [class]="showStats() ? 'text-brand-sky' : 'text-brand-cyan'"
+        [class]="
+          'rounded-full p-2 transition hover:bg-brand-primary/70 ' +
+          (fullscreen() ? 'flex' : 'hidden sm:flex') + ' ' +
+          (showStats() ? 'text-brand-sky' : 'text-brand-cyan')
+        "
         aria-label="Playback stats"
         matTooltip="Playback stats"
       >
@@ -384,13 +405,19 @@
       </button>
 
       @if (pipSupported) {
-        <button type="button" (click)="togglePip()" class="text-brand-cyan" aria-label="Picture in picture" matTooltip="Picture in picture">
+        <button
+          type="button"
+          (click)="togglePip()"
+          [class]="'rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70 ' + (fullscreen() ? 'flex' : 'hidden sm:flex')"
+          aria-label="Picture in picture"
+          matTooltip="Picture in picture"
+        >
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="14" rx="1.5" /><rect x="12" y="11" width="7" height="5" rx="1" fill="currentColor" stroke="none" />
           </svg>
         </button>
       }
-      <button type="button" (click)="toggleFullscreen()" class="text-brand-cyan" aria-label="Fullscreen" matTooltip="Fullscreen">
+      <button type="button" (click)="toggleFullscreen()" class="rounded-full p-2 text-brand-cyan transition hover:bg-brand-primary/70" aria-label="Fullscreen" matTooltip="Fullscreen">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
         </svg>

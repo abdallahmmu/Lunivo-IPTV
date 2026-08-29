@@ -29,13 +29,15 @@ If you point this at a provider that deviates further, the most likely places to
 
 **CORS is entirely up to your provider.** Every request — auth, catalog, and the video streams themselves — goes straight from your browser to your IPTV server. If that server doesn't send `Access-Control-Allow-Origin`, the browser will block it and there is no proxy here to route around that (that's intentional — see below). You'll see this as a "network / CORS" error at login, or as playback failures with no other symptoms.
 
-## Why no backend, ever
+## Why no backend, by default
 
-This was an explicit requirement, not an oversight. A backend/proxy would trivially solve CORS and mixed-content issues, but it would also mean your IPTV credentials and stream traffic flow through a server you don't control. Instead:
+This was an explicit requirement, not an oversight. A backend/proxy would trivially solve CORS and mixed-content issues, but it would also mean your IPTV credentials and stream traffic flow through a server you don't control. So by default:
 
 - Credentials are entered by the user and live only in `AuthService`'s in-memory state, backed by `sessionStorage` (cleared when the tab closes) unless you check **Remember me**, in which case they're written to `localStorage` instead (survives browser restarts, on this device, until you disconnect or clear it).
-- Nothing is ever sent anywhere except the server URL you typed in.
+- Nothing is sent anywhere except the server URL you typed in.
 - If your provider doesn't support CORS or HTTPS, that's a real limitation of a frontend-only architecture — see above — and this app surfaces it honestly instead of quietly adding a server to paper over it.
+
+**One narrow exception:** the app is also deployed as a public HTTPS site, and most IPTV panels are HTTP-only — the browser blocks that combination outright as mixed content (see above), with no client-side workaround. For that specific case, and only that case, `api/proxy.ts` (a stateless Vercel serverless function) forwards `player_api.php` requests — including the login call — server-side. It doesn't log or store anything, only ever forwards to `/player_api.php` on the server URL you provided, refuses private/loopback targets (SSRF guard), and never touches video streams — those still load directly from your provider to your browser either way. It only activates when the app detects it's running over HTTPS against an HTTP-only server; running the app locally over `http://localhost` (see below) never uses it, so your credentials never leave the browser at all if that matters to you.
 
 ## Architecture
 
@@ -76,3 +78,31 @@ Open the app, click "Connect to your IPTV" on the landing page, and enter your p
 npm run build     # production build to dist/
 npm test          # unit tests (Vitest)
 ```
+
+## Mobile apps (Android / iOS)
+
+The same Angular codebase ships as native Android and iOS apps via [Capacitor](https://capacitorjs.com/), wrapping the built web app in a native shell rather than maintaining a second codebase.
+
+```bash
+npm run cap:sync      # build the web app and sync it into android/ and ios/
+npm run cap:android   # build, sync, and open the project in Android Studio
+npm run cap:ios       # build, sync, and open the project in Xcode
+```
+
+A few things behave differently on native than on web:
+
+- **API calls** go through `@capacitor/core`'s `CapacitorHttp` plugin (configured in `capacitor.config.ts`), which transparently patches `fetch`/`XMLHttpRequest` to use native networking instead of the WebView's — this is what lets the app reach HTTP-only IPTV panels from inside an HTTPS-origin WebView without the mixed-content restriction ever coming into play, and without any platform-detection code in the app itself.
+- **Direct (non-HLS) video playback on Android** goes through a small loopback relay (`android/app/src/main/java/com/lunivo/iptv/LocalVideoRelayServer.java`, embedded via [NanoHTTPD](https://github.com/NanoHttpd/nanohttpd)) bound to `127.0.0.1`. `<video>` elements load media directly rather than through `fetch`/`XHR`, so `CapacitorHttp`'s patch doesn't cover them, and some WebView versions still block mixed-content media loads even with `allowMixedContent` set — a loopback origin sidesteps both. This only exists on Android; `<video>` playback on iOS goes straight to the provider.
+- Android additionally sets `android:usesCleartextTraffic="true"`, and iOS sets `NSAppTransportSecurity` / `NSAllowsArbitraryLoads`, since most Xtream panels are HTTP-only and both platforms block cleartext networking by default.
+
+## Contributing
+
+Contributions are welcome — bug reports, provider-compatibility notes, feature ideas, and pull requests all help.
+
+- **Found a bug?** Check the [Known limitations](#known-limitations-read-before-reporting-a-bug) section above first — MKV playback, mixed content, and CORS failures are usually the provider, not this app. If it's still a real bug, [open an issue](https://github.com/abdallahmmu/Lunivo-IPTV/issues/new) with steps to reproduce, your browser/OS (or Android/iOS version if on the mobile app), and any console errors.
+- **Have an idea?** [Open an issue](https://github.com/abdallahmmu/Lunivo-IPTV/issues/new) describing the use case before writing code for anything non-trivial, so we can align on approach first.
+- **Want to fix something yourself?** Pull requests are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow (fork, branch, coding conventions, and how to submit the PR).
+
+## License
+
+[MIT](LICENSE) — use it, fork it, ship it.

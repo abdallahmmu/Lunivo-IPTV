@@ -19,13 +19,19 @@ import { Topbar } from '../topbar/topbar';
         @if (mobileNavOpen()) {
           <div class="fixed inset-0 z-40 lg:hidden">
             <div class="absolute inset-0 bg-brand-primary/60" (click)="mobileNavOpen.set(false)"></div>
-            <aside class="absolute inset-y-0 left-0 w-64 bg-brand-primary shadow-xl" (click)="mobileNavOpen.set(false)">
+            <aside
+              class="absolute inset-y-0 left-0 w-64 bg-brand-primary shadow-xl"
+              style="padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); padding-left: var(--safe-left)"
+              (click)="mobileNavOpen.set(false)"
+            >
               <app-sidebar />
             </aside>
           </div>
         }
 
-        <main class="min-w-0 flex-1 overflow-y-auto px-4 py-5 lg:px-8 lg:py-6">
+        <main
+          class="min-w-0 flex-1 overflow-y-auto px-4 pt-5 pb-[calc(1.25rem+var(--safe-bottom))] lg:px-8 lg:pt-6 lg:pb-[calc(1.5rem+var(--safe-bottom))]"
+        >
           <router-outlet />
         </main>
       </div>

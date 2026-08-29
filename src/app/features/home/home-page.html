@@ -31,11 +31,12 @@
       <h2 class="text-lg font-semibold text-brand-cyan">Continue Watching</h2>
       <div class="scrollbar-none -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
         @for (item of continueWatching(); track item.kind + item.id + (item.episodeId ?? '')) {
-          <div class="group relative w-36 shrink-0 sm:w-44">
+          <div [class]="'group relative shrink-0 ' + (item.episodeId ? 'w-56 sm:w-64' : 'w-36 sm:w-44')">
             <app-poster-card
               [title]="item.name"
               [subtitle]="item.seriesName ? 'S' + item.seasonNumber + ' · E' + item.episodeNumber : null"
               [image]="item.image"
+              [wide]="!!item.episodeId"
               [progressPercent]="progressPercent(item)"
               (activate)="open(item, true)"
             />
@@ -71,8 +72,8 @@
       <h2 class="text-lg font-semibold text-brand-cyan">Recently Watched</h2>
       <div class="scrollbar-none -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
         @for (item of recentlyWatched().slice(0, 12); track item.kind + item.id + (item.episodeId ?? '')) {
-          <div class="group relative w-36 shrink-0 sm:w-44">
-            <app-poster-card [title]="item.name" [image]="item.image" (activate)="open(item)" />
+          <div [class]="'group relative shrink-0 ' + (item.episodeId ? 'w-56 sm:w-64' : 'w-36 sm:w-44')">
+            <app-poster-card [title]="item.name" [image]="item.image" [wide]="!!item.episodeId" (activate)="open(item)" />
             <button
               type="button"
               (click)="removeFromHistory(item)"

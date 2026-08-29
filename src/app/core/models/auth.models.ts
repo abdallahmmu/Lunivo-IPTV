@@ -1,6 +1,6 @@
 /** Credentials entered by the user. Never hard-code these. */
 export interface IptvCredentials {
-  /** Normalized, e.g. "http://mvo25.in" (no trailing slash, no path) */
+  /** Normalized, e.g. "http://your-provider.example" (no trailing slash, no path) */
   serverUrl: string;
   username: string;
   password: string;

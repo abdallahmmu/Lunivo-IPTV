@@ -15,7 +15,7 @@ import { RatingPipe } from '../../pipes/rating.pipe';
       [title]="subtitle() ? title() + ' — ' + subtitle() : title()"
       class="group relative block w-full shrink-0 overflow-hidden rounded-lg bg-brand-primary text-left ring-1 ring-brand-cyan/5 transition duration-200 hover:z-10 hover:-translate-y-1 hover:ring-brand-cyan/20 hover:shadow-2xl hover:shadow-brand-primary/50"
     >
-      <div class="aspect-2/3 w-full overflow-hidden bg-brand-violet">
+      <div [class]="wide() ? 'aspect-video w-full overflow-hidden bg-brand-violet' : 'aspect-2/3 w-full overflow-hidden bg-brand-violet'">
         <img
           [src]="image() || placeholder"
           appImageFallback="poster"
@@ -25,24 +25,20 @@ import { RatingPipe } from '../../pipes/rating.pipe';
         />
       </div>
 
-      <div class="absolute inset-x-0 top-0 flex items-start justify-between p-2 opacity-0 transition group-hover:opacity-100">
+      <div class="absolute left-2 top-2 z-10">
         <app-favorite-button [active]="isFavorite()" (toggled)="favoriteToggle.emit()" />
       </div>
 
-      @if (rating() | rating; as r) {
-        <div class="absolute right-2 top-2 rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-xs font-medium text-amber-400 backdrop-blur" title="Rating: {{ r }}">
-          ★ {{ r }}
-        </div>
-      }
-
-      @if (extension(); as ext) {
-        <div
-          class="absolute left-2 top-2 rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-cyan backdrop-blur"
-          title="File type: {{ ext }}"
-        >
-          {{ ext }}
-        </div>
-      }
+      <div class="absolute right-2 top-2 flex flex-col items-end gap-1">
+        @if (rating() | rating; as r) {
+          <div class="rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-xs font-medium text-amber-400 backdrop-blur" title="Rating: {{ r }}">★ {{ r }}</div>
+        }
+        @if (extension(); as ext) {
+          <div class="rounded-md bg-brand-primary/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-cyan backdrop-blur" title="File type: {{ ext }}">
+            {{ ext }}
+          </div>
+        }
+      </div>
 
       @if (progressPercent() !== null) {
         <div class="absolute inset-x-0 bottom-0 p-1.5">
@@ -51,9 +47,9 @@ import { RatingPipe } from '../../pipes/rating.pipe';
       }
 
       <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-primary/90 via-brand-primary/40 to-transparent p-2.5 pt-8">
-        <p class="truncate text-sm font-medium text-brand-cyan">{{ title() }}</p>
+        <p dir="auto" class="truncate text-sm font-medium text-brand-cyan">{{ title() }}</p>
         @if (subtitle()) {
-          <p class="truncate text-xs text-brand-cyan">{{ subtitle() }}</p>
+          <p dir="auto" class="truncate text-xs text-brand-cyan">{{ subtitle() }}</p>
         }
       </div>
     </button>
@@ -67,6 +63,8 @@ export class PosterCard {
   /** Container format (e.g. "mkv", "mp4"), when the caller has it available without an extra request. */
   readonly extension = input<string | null | undefined>(null);
   readonly isFavorite = input(false);
+  /** 16:9 instead of the default 2:3 portrait — for rows backed by landscape stills (e.g. episode thumbnails) rather than posters. */
+  readonly wide = input(false);
   /** 0-100, or null to hide the progress bar. */
   readonly progressPercent = input<number | null>(null);
 

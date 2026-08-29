@@ -9,7 +9,10 @@ import { SearchBar } from '../../shared/components/search-bar/search-bar';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, SearchBar, LogoMark],
   template: `
-    <header class="flex items-center gap-3 border-b border-brand-violet/80 bg-brand-primary/80 px-4 py-3 backdrop-blur lg:px-6">
+    <header
+      class="flex items-center gap-3 border-b border-brand-violet/80 bg-brand-primary/80 px-4 pb-3 backdrop-blur lg:px-6"
+      style="padding-top: calc(0.75rem + var(--safe-top))"
+    >
       <button type="button" (click)="menuToggle.emit()" class="text-brand-sky hover:text-brand-cyan lg:hidden" aria-label="Toggle menu" title="Toggle menu">
         <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
       </button>

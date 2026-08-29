@@ -10,14 +10,16 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Capacitor } from '@capacitor/core';
-import Hls from 'hls.js';
+import Hls, { HlsConfig } from 'hls.js';
 import { AppError } from '../../../core/models/common.models';
 import { PlaybackSource } from '../../../core/services/stream.service';
 import { StorageService } from '../../../core/services/storage.service';
+import { NativePlaylistLoader } from './native-playlist-loader';
 import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 
 const TIME_UPDATE_EMIT_INTERVAL_MS = 5000;
@@ -29,15 +31,31 @@ const ASPECT_RATIO_STORAGE_KEY = 'video-aspect-ratio';
 const PLAYBACK_RATE_STORAGE_KEY = 'video-playback-rate';
 
 /**
- * A direct `<video src>` load bypasses CapacitorHttp entirely (it only patches fetch/XHR, not
- * media-element resource loading), and Android's WebView mixed-content policy can still block
- * an http:// stream on an https-origin page even with allowMixedContent set. Relaying through a
- * loopback server sidesteps this: 127.0.0.1 is a trustworthy origin per the mixed-content spec,
- * and LocalVideoRelayServer (android/.../MainActivity.java) fetches the real stream via native
- * networking, forwarding Range requests both ways so seeking still works normally. HLS playback
- * is unaffected — hls.js does its own fetching, which CapacitorHttp already covers.
+ * A direct MP4/MKV `<video src>` doesn't point at the provider directly — it either goes straight
+ * to it (web) or through the local relay (Android/iOS), and in both cases the *browser's own*
+ * networking is what actually follows the provider's redirect (`mvo25.in` → a CDN host carrying a
+ * tokenized path) and holds onto that resolved connection/token for subsequent range requests as
+ * the user seeks or buffers. Verified live: pausing for ~2 minutes and resuming fails with `406`
+ * on that CDN URL plus a missing CORS header, meaning the token backing that redirect had already
+ * expired — the browser was still trying to reuse it. hls.js sources are unaffected (each segment
+ * is a fresh request through its own loader, not a long-held connection) — see the `!this.hls`
+ * check below.
  */
-const ANDROID_VIDEO_RELAY_PORT = 8098;
+const RELOAD_AFTER_PAUSE_MS = 45_000;
+
+/**
+ * A direct `<video src>` load bypasses CapacitorHttp entirely (it only patches fetch/XHR, not
+ * media-element resource loading), and both platforms' WebViews enforce mixed-content blocking
+ * on it independent of CapacitorHttp: Android's can still block an http:// stream on an
+ * https-origin page even with allowMixedContent set, and WKWebView enforces it unconditionally
+ * with no equivalent override at all. Relaying through a loopback server sidesteps this on both:
+ * 127.0.0.1 is a trustworthy origin per the mixed-content spec, and the native relay server
+ * (android/.../LocalVideoRelayServer.java, ios/App/App/AppDelegate.swift) fetches the real
+ * stream via native networking, forwarding Range requests both ways so seeking still works
+ * normally. HLS playback is unaffected — hls.js does its own fetching, which CapacitorHttp
+ * already covers.
+ */
+const NATIVE_VIDEO_RELAY_PORT = 8098;
 
 export interface QualityLevel {
   /** hls.js level index; -1 is reserved for "Auto" (ABR). */
@@ -108,6 +126,11 @@ export class VideoPlayer implements OnDestroy {
   readonly hasNext = input(false);
   /** Shows a button that asks the host page to render its own episode-switcher panel. */
   readonly showEpisodesButton = input(false);
+  /** Whether starting a new source (see setupSource()) enters true-fullscreen automatically —
+   *  the Netflix-style "playing always takes over the screen" behavior. On by default for VOD
+   *  (movie/episode) playback; live-tv-page opts out since it keeps the channel list on screen
+   *  alongside the player. The manual fullscreen toggle button still works either way. */
+  readonly autoFullscreen = input(true);
 
   readonly timeUpdate = output<{ positionSecs: number; durationSecs: number }>();
   readonly ended = output<void>();
@@ -126,6 +149,11 @@ export class VideoPlayer implements OnDestroy {
   protected readonly buffering = signal(false);
   protected readonly currentTime = signal(0);
   protected readonly duration = signal(0);
+  // Starts false regardless of autoFullscreen(): input-bound values aren't applied yet at field-
+  // initializer time (this would otherwise always read the input's default, not what's actually
+  // bound — verified live: live-tv-page's [autoFullscreen]="false" was being ignored on load for
+  // exactly this reason). setupSource() is the single source of truth for the correct value,
+  // since it always runs once inputs are live (afterNextRender(), and again on every source change).
   protected readonly fullscreen = signal(false);
   protected readonly pipActive = signal(false);
   protected readonly error = signal<AppError | null>(null);
@@ -171,6 +199,20 @@ export class VideoPlayer implements OnDestroy {
   private lastEmittedAt = 0;
   private controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
   private viewReady = false;
+  /** Timestamp of the last pause; null while playing. */
+  private pausedAt: number | null = null;
+  /** Bound once so ngOnDestroy can remove the exact same listener — see the fullscreenchange
+   *  handler below. */
+  private readonly onNativeFullscreenChange = (): void => {
+    // Native fullscreen was exited (Esc, an OS gesture, or our own toggleFullscreen()). For
+    // autoFullscreen() sources (movies/episodes), the CSS-immersive layer is meant to persist
+    // regardless of native fullscreen — the ✕ close button is the real "exit" there, not this.
+    // For sources without it (live-tv), native fullscreen was the only thing driving the big
+    // layout, so collapse back to the embedded view along with it.
+    if (!document.fullscreenElement && !this.autoFullscreen()) {
+      this.fullscreen.set(false);
+    }
+  };
 
   constructor() {
     afterNextRender(() => {
@@ -181,12 +223,36 @@ export class VideoPlayer implements OnDestroy {
     effect(() => {
       this.source();
       if (this.viewReady) {
-        this.setupSource();
+        // setupSource() itself reads other signals (startPositionSecs, playbackRate, autoplay,
+        // autoFullscreen) to apply them to the newly-loaded element — none of those are meant to
+        // be reload triggers on their own. Without untracked(), Angular's effect() picks up every
+        // signal read anywhere in this call chain as a dependency, not just the explicit source()
+        // read above. Verified live: startPositionSecs (fed by resumePosition(), which changes
+        // every 5s as playback position gets recorded to history) was re-triggering this effect
+        // on that same interval, restarting the episode from 0 over and over.
+        untracked(() => this.setupSource());
       }
     });
+
+    // Locks page scroll behind the full-viewport overlay — see toggleFullscreen().
+    effect(() => {
+      document.body.style.overflow = this.fullscreen() ? 'hidden' : '';
+    });
+
+    // Native fullscreen can be exited by the browser itself (Esc, an OS gesture) without going
+    // through toggleFullscreen() — keeps our own signal in sync so the player doesn't end up
+    // thinking it's still fullscreen after the browser chrome has already reappeared.
+    document.addEventListener('fullscreenchange', this.onNativeFullscreenChange);
   }
 
   ngOnDestroy(): void {
+    // In case the host destroys this component (e.g. closePlayer()) while fullscreen was active —
+    // the effect above only ever sets this going forward, it doesn't undo it on its own disposal.
+    document.body.style.overflow = '';
+    document.removeEventListener('fullscreenchange', this.onNativeFullscreenChange);
+    if (document.fullscreenElement === this.containerRef().nativeElement) {
+      document.exitFullscreen().catch(() => undefined);
+    }
     this.destroyHls();
     if (this.controlsHideTimer) clearTimeout(this.controlsHideTimer);
     this.audioContext?.close().catch(() => undefined);
@@ -196,6 +262,17 @@ export class VideoPlayer implements OnDestroy {
     const video = this.videoRef().nativeElement;
     const source = this.source();
     this.destroyHls();
+    // Explicitly stop and detach the previous resource before loading a new one — relying on the
+    // implicit teardown from just reassigning `video.src` below was leaving the old connection to
+    // the provider open a beat longer than intended, verified live as a stall (currentTime resets
+    // to 0, readyState drops back to HAVE_NOTHING before recovering — or on a slower connection,
+    // not recovering at all) when advancing to the next episode. The account this app talks to
+    // typically allows only one concurrent connection, so the old request needs to be fully closed
+    // before the new one opens, not left to race it.
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    if (source) this.fullscreen.set(this.autoFullscreen());
     this.error.set(null);
     this.currentTime.set(0);
     this.duration.set(0);
@@ -215,7 +292,21 @@ export class VideoPlayer implements OnDestroy {
     video.crossOrigin = 'anonymous';
 
     if (!source) {
-      video.removeAttribute('src');
+      return;
+    }
+
+    // AVFoundation (the media engine behind <video> on iOS) has no Matroska/MKV container
+    // support at all, regardless of the codec inside it — verified live: it downloads tens of
+    // MB hoping to identify a playable stream, then fails with MEDIA_ERR_SRC_NOT_SUPPORTED no
+    // matter the file size or network health. Skip straight to the same "unsupported format"
+    // messaging used elsewhere instead of burning bandwidth and time on a load that can only
+    // ever fail. Android's native media stack does support MKV, so this is iOS-only.
+    if (Capacitor.getPlatform() === 'ios' && source.kind === 'native' && source.extension.toLowerCase() === 'mkv') {
+      this.error.set({
+        message: `iOS can't play this file (MKV). Try opening it in an external player.`,
+        code: 'not_supported',
+      });
+      this.playbackError.emit(this.error()!);
       return;
     }
 
@@ -225,9 +316,19 @@ export class VideoPlayer implements OnDestroy {
       // as "maybe" without actually being able to demux HLS — verified live: playback silently fails
       // (MEDIA_ERR_SRC_NOT_SUPPORTED) if canPlayType is trusted first. hls.js must take priority.
       if (Hls.isSupported()) {
-        const hls = new Hls({ enableWorker: true });
+        // See native-playlist-loader.ts — fixes a Capacitor/hls.js interaction that otherwise
+        // breaks HLS playback entirely on native (both initial load and live-stream reloads).
+        const hlsConfig: Partial<HlsConfig> = { enableWorker: true };
+        if (Capacitor.isNativePlatform()) {
+          hlsConfig.pLoader = NativePlaylistLoader;
+        }
+        const hls = new Hls(hlsConfig);
         this.hls = hls;
         hls.on(Hls.Events.ERROR, (_event, data) => {
+          // Capacitor bridges WKWebView/Android WebView console output back to the native
+          // Xcode/Logcat console, so this is the one reliable way to see *why* playback failed
+          // (network vs. media, which URL, which HTTP status) without attaching a debugger.
+          console.error('[VideoPlayer] hls.js error', data);
           if (data.fatal) {
             this.error.set({
               message: 'This live stream could not be loaded. It may be temporarily offline.',
@@ -262,7 +363,14 @@ export class VideoPlayer implements OnDestroy {
         hls.loadSource(source.url);
         hls.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = source.url;
+        // Same mixed-content/relay concern as the direct MP4/MKV branch below — this is a raw
+        // <video src> assignment too, just for an HLS playlist instead of a single file. Only a
+        // partial fix, unlike the hls.js path above: the relay proxies the manifest's bytes fine,
+        // but AVFoundation still resolves any relative/absolute-path segment URI in it against
+        // the relay's own address (127.0.0.1:8098), not the real server — same root problem
+        // NativePlaylistLoader solves for hls.js, unsolved here. Only reachable at all when
+        // Hls.isSupported() is false (old WebKit without MSE); not exercised by this app today.
+        video.src = this.directVideoSrc(source.url);
       } else {
         this.error.set({ message: 'HLS playback is not supported in this browser.', code: 'not_supported' });
         return;
@@ -298,12 +406,12 @@ export class VideoPlayer implements OnDestroy {
     }
   }
 
-  /** See ANDROID_VIDEO_RELAY_PORT above — routes direct (non-HLS) sources through the local
-   *  relay only on Android native, where a <video src> load can still hit mixed-content
-   *  blocking despite allowMixedContent. Untouched everywhere else (web, iOS, HLS playback). */
+  /** See NATIVE_VIDEO_RELAY_PORT above — routes direct (non-HLS) sources through the local
+   *  relay on native Android/iOS, where a <video src> load can hit mixed-content blocking
+   *  that CapacitorHttp doesn't cover. Untouched on web and for HLS playback. */
   private directVideoSrc(url: string): string {
-    if (Capacitor.getPlatform() === 'android') {
-      return `http://127.0.0.1:${ANDROID_VIDEO_RELAY_PORT}/relay?url=${encodeURIComponent(url)}`;
+    if (Capacitor.isNativePlatform()) {
+      return `http://127.0.0.1:${NATIVE_VIDEO_RELAY_PORT}/relay?url=${encodeURIComponent(url)}`;
     }
     return url;
   }
@@ -354,9 +462,11 @@ export class VideoPlayer implements OnDestroy {
 
   protected onPlay(): void {
     this.playing.set(true);
+    this.pausedAt = null;
   }
   protected onPause(): void {
     this.playing.set(false);
+    this.pausedAt = Date.now();
   }
   protected onWaiting(): void {
     this.buffering.set(true);
@@ -372,6 +482,15 @@ export class VideoPlayer implements OnDestroy {
   protected onNativeError(): void {
     const video = this.videoRef().nativeElement;
     const code = video.error?.code;
+    // See the hls.js error log above — same reasoning, this is the native <video>/AVPlayer
+    // equivalent (hit for direct MP4/MKV sources and the native-HLS fallback, not the hls.js path).
+    console.error('[VideoPlayer] native <video> error', {
+      code,
+      message: video.error?.message,
+      currentSrc: video.currentSrc,
+      networkState: video.networkState,
+      readyState: video.readyState,
+    });
     const isFormatIssue = code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || code === MediaError.MEDIA_ERR_DECODE;
     const appError: AppError = isFormatIssue
       ? {
@@ -386,10 +505,28 @@ export class VideoPlayer implements OnDestroy {
   protected togglePlay(): void {
     const video = this.videoRef().nativeElement;
     if (video.paused) {
-      video.play().catch(() => undefined);
+      this.resumePlayback(video);
     } else {
       video.pause();
     }
+  }
+
+  /** See RELOAD_AFTER_PAUSE_MS above. Reloading forces the browser to re-resolve the source from
+   *  scratch (a fresh redirect/token) instead of reusing a connection that may have gone stale. */
+  private resumePlayback(video: HTMLVideoElement): void {
+    const idleMs = this.pausedAt ? Date.now() - this.pausedAt : 0;
+    if (this.hls || idleMs < RELOAD_AFTER_PAUSE_MS) {
+      video.play().catch(() => undefined);
+      return;
+    }
+    const resumeAt = video.currentTime;
+    const onLoaded = () => {
+      video.currentTime = resumeAt;
+      video.play().catch(() => undefined);
+      video.removeEventListener('loadedmetadata', onLoaded);
+    };
+    video.addEventListener('loadedmetadata', onLoaded);
+    video.load();
   }
 
   protected toggleMute(): void {
@@ -452,14 +589,19 @@ export class VideoPlayer implements OnDestroy {
     this.showRemainingTime.update((v) => !v);
   }
 
-  protected async toggleFullscreen(): Promise<void> {
+  /** The big immersive layout itself is CSS-only (a `position: fixed` overlay driven by the
+   *  `fullscreen` signal — see video-player.html's root container, and setupSource()/autoFullscreen()
+   *  for how it's normally engaged automatically). This button is a best-effort *addition* on top:
+   *  it also requests real browser/OS fullscreen (hiding tabs/address bar too), which the CSS layer
+   *  intentionally doesn't depend on — `Element.requestFullscreen()` is unreliable for non-<video>
+   *  elements on iOS WKWebView, so the player must look and behave correctly with or without it. */
+  protected toggleFullscreen(): void {
     const container = this.containerRef().nativeElement;
-    if (!document.fullscreenElement) {
-      await container.requestFullscreen().catch(() => undefined);
-      this.fullscreen.set(true);
+    if (document.fullscreenElement === container) {
+      document.exitFullscreen().catch(() => undefined);
     } else {
-      await document.exitFullscreen().catch(() => undefined);
-      this.fullscreen.set(false);
+      this.fullscreen.set(true);
+      container.requestFullscreen?.().catch(() => undefined);
     }
   }
 
@@ -601,7 +743,17 @@ export class VideoPlayer implements OnDestroy {
         this.toggleMute();
         break;
       case 'f':
-        void this.toggleFullscreen();
+        this.toggleFullscreen();
+        break;
+      case 'Escape':
+        // If native fullscreen is active, the browser already exits it on Escape by itself (and
+        // the fullscreenchange listener reacts appropriately) — this only covers the case where
+        // the CSS layer is fullscreen without native fullscreen ever having engaged (e.g. Live TV,
+        // where autoFullscreen() is off and requestFullscreen() may have been rejected).
+        if (this.fullscreen() && !this.autoFullscreen()) {
+          event.preventDefault();
+          this.fullscreen.set(false);
+        }
         break;
       case 'n':
       case 'N':

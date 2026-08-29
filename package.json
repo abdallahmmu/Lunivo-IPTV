@@ -1,6 +1,7 @@
 {
   "name": "lunivo-iptv",
   "version": "0.0.0",
+  "license": "MIT",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -17,7 +18,7 @@
     "@angular/animations": "^22.1.4",
     "@angular/cdk": "^22.1.4",
     "@angular/common": "^22.0.0",
-    "@angular/compiler": "^22.0.0",
+    "@angular/compiler": "^22.0`1.0",
     "@angular/core": "^22.0.0",
     "@angular/forms": "^22.0.0",
     "@angular/material": "^22.1.4",
