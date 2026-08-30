@@ -27,17 +27,16 @@ If you point this at a provider that deviates further, the most likely places to
 
 **HTTP-only providers + an HTTPS-hosted app = mixed content.** If you deploy this app over HTTPS but your IPTV server only serves HTTP (very common — many panels' HTTPS port isn't actually wired up), the browser will block every request as mixed content. The app detects this combination before attempting to connect and shows a clear error rather than a cryptic failure — but the underlying constraint is a browser security rule, not something this app can work around. Serve the app over HTTP too, or use a provider/URL that genuinely supports HTTPS.
 
-**CORS is entirely up to your provider.** Every request — auth, catalog, and the video streams themselves — goes straight from your browser to your IPTV server. If that server doesn't send `Access-Control-Allow-Origin`, the browser will block it and there is no proxy here to route around that (that's intentional — see below). You'll see this as a "network / CORS" error at login, or as playback failures with no other symptoms.
+**CORS is entirely up to your provider.** Every request — auth, catalog, and the video streams themselves — goes straight from your browser to your IPTV server. If that server doesn't send `Access-Control-Allow-Origin`, the browser will block it and there is no proxy here to route around that (see below — that's intentional). You'll see this as a "network / CORS" error at login, or as playback failures with no other symptoms.
 
 ## Why no backend, by default
 
-This was an explicit requirement, not an oversight. A backend/proxy would trivially solve CORS and mixed-content issues, but it would also mean your IPTV credentials and stream traffic flow through a server you don't control. So by default:
+This was an explicit requirement, not an oversight. A backend/proxy would trivially solve CORS and mixed-content issues, but it would also mean your IPTV credentials and stream traffic flow through a server you don't control. So, no exceptions:
 
+- Every API call and every video stream goes straight from your browser to your IPTV server, always. There is no proxy anywhere in this app, deployed or local — nothing forwards `player_api.php` on your behalf, ever. (A JSON-only proxy was tried and reverted — it can't cover video playback, since streaming every byte of every stream through a serverless function isn't reasonable, so it only ever bought a working login followed by broken playback.)
 - Credentials are entered by the user and live only in `AuthService`'s in-memory state, backed by `sessionStorage` (cleared when the tab closes) unless you check **Remember me**, in which case they're written to `localStorage` instead (survives browser restarts, on this device, until you disconnect or clear it).
 - Nothing is sent anywhere except the server URL you typed in.
-- If your provider doesn't support CORS or HTTPS, that's a real limitation of a frontend-only architecture — see above — and this app surfaces it honestly instead of quietly adding a server to paper over it.
-
-**One narrow exception:** the app is also deployed as a public HTTPS site, and most IPTV panels are HTTP-only — the browser blocks that combination outright as mixed content (see above), with no client-side workaround. For that specific case, and only that case, `api/proxy.ts` (a stateless Vercel serverless function) forwards `player_api.php` requests — including the login call — server-side. It doesn't log or store anything, only ever forwards to `/player_api.php` on the server URL you provided, refuses private/loopback targets (SSRF guard), and never touches video streams — those still load directly from your provider to your browser either way. It only activates when the app detects it's running over HTTPS against an HTTP-only server; running the app locally over `http://localhost` (see below) never uses it, so your credentials never leave the browser at all if that matters to you.
+- If your provider doesn't support CORS or HTTPS, that's a real limitation of a frontend-only architecture — see above — and this app surfaces it honestly instead of quietly adding a server to paper over it. Practically: **the web app needs to be served over plain HTTP** to reach an HTTP-only IPTV panel (the vast majority of them) — run it locally, or self-host it over HTTP. A publicly-hosted HTTPS copy can only work with providers that themselves support HTTPS. The Android/iOS apps don't have this restriction at all (see below) — their WebView routes API calls through native networking, not the page's own fetch, so the page's own origin scheme is irrelevant there.
 
 ## Architecture
 
@@ -49,7 +48,7 @@ src/app/
 │   │                    FavoritesService, HistoryService, SearchService, CacheService, StorageService
 │   ├── guards/         authGuard / guestGuard
 │   ├── interceptors/   dev-console logging for failed API calls
-│   └── utils/          URL normalization, mixed-content detection, error mapping
+│   └── utils/          URL normalization, https-hosting detection, error mapping
 ├── layout/             MainLayout (topbar + responsive sidebar) wrapping every authenticated route
 ├── shared/
 │   ├── components/     video-player, poster-card, channel-list-item, category-tabs,
@@ -73,6 +72,16 @@ npm start        # ng serve, http://localhost:4200
 ```
 
 Open the app, click "Connect to your IPTV" on the landing page, and enter your provider's server URL, username, and password in the dialog. No configuration or environment variables are needed — everything is provided at runtime through that form.
+
+**If your provider's requests fail on `localhost` with what looks like a `521`/unreachable error even though `curl` to the same URL works fine:** Chrome is silently rewriting that domain's requests from `http://` to `https://` before they ever hit the network — driven by a real DNS `HTTPS` record the provider's CDN publishes (confirmed via `dig <domain> HTTPS`), not by a cached per-profile decision, so it isn't something `chrome://net-internals/#hsts` has anything to delete and it will recur on every request, every session. Many HTTP-only IPTV panels' HTTPS port isn't actually wired up, so the rewritten request fails upstream (`521`, or a raw connection failure). This can't be detected or worked around from app code — it's decided by Chrome's network stack before the page's JS ever sees the request, and it's a race against Chrome's own DNS lookup, so it doesn't even happen consistently (Chrome feature flags that are supposed to disable it, like `--disable-features=HttpsUpgrades,UseDnsHttpsSvcbAlpn`, only worked ~1 in 3 tries when we measured it — not good enough to rely on).
+
+Fix: `npm run dev:chrome` launches a disposable Chrome profile (`scripts/dev-chrome.sh`; separate from your main one, no reset needed) pointed at `http://localhost:4200`. Set `IPTV_HOST` to your provider's domain and it resolves that domain's real IP once via `dig` and passes Chrome `--host-resolver-rules="MAP <host> <ip>"` — this is what's actually reliable (5/5 in repeated live testing, vs. the flaky feature-flag approach above), since it makes Chrome connect straight to the IP without ever doing the DNS lookup that triggers the upgrade:
+```bash
+IPTV_HOST=mvo25.in npm run dev:chrome
+```
+Without `IPTV_HOST` set, it just launches a clean profile with no override — fine for providers that don't trigger this at all.
+
+If a window from that profile is already open when you run it again, the script kills it first — command-line flags (including the host override) only take effect on a cold start, and a reused process would silently keep whatever flags it originally launched with.
 
 ```bash
 npm run build     # production build to dist/

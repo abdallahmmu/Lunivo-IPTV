@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AccountStatus, IptvConnection, IptvCredentials, XtreamAuthResponse } from '../models/auth.models';
 import { AppError } from '../models/common.models';
-import { normalizeServerUrl, playerApiRequest } from '../utils/url.util';
+import { normalizeServerUrl, playerApiUrl } from '../utils/url.util';
 import { mapAuthError } from '../utils/xtream-error.util';
 import { CacheService } from './cache.service';
 import { StorageService } from './storage.service';
@@ -57,8 +57,11 @@ export class AuthService {
     }
 
     try {
-      const { url, params } = playerApiRequest(serverUrl, { username: credentials.username, password: credentials.password });
-      const auth = await firstValueFrom(this.http.get<XtreamAuthResponse>(url, { params }));
+      const auth = await firstValueFrom(
+        this.http.get<XtreamAuthResponse>(playerApiUrl(serverUrl), {
+          params: { username: credentials.username, password: credentials.password },
+        }),
+      );
 
       if (!auth?.user_info || String(auth.user_info.auth) !== '1') {
         return { error: { message: 'Invalid username or password.', code: 'invalid_credentials' } };

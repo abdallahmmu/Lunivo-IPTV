@@ -1,4 +1,4 @@
-import { isMixedContentBlocked, joinUrl, normalizeServerUrl } from './url.util';
+import { joinUrl, normalizeServerUrl } from './url.util';
 
 describe('normalizeServerUrl', () => {
   it('adds a scheme when missing', () => {
@@ -26,17 +26,5 @@ describe('normalizeServerUrl', () => {
 describe('joinUrl', () => {
   it('joins segments without producing a double slash', () => {
     expect(joinUrl('http://example.com/', 'live', 'user', 'pass', 405191)).toBe('http://example.com/live/user/pass/405191');
-  });
-});
-
-describe('isMixedContentBlocked', () => {
-  it('flags an http server when the app itself is https', () => {
-    Object.defineProperty(window, 'location', { value: { protocol: 'https:' }, writable: true });
-    expect(isMixedContentBlocked('http://example.com')).toBe(true);
-  });
-
-  it('does not flag an http server when the app itself is http', () => {
-    Object.defineProperty(window, 'location', { value: { protocol: 'http:' }, writable: true });
-    expect(isMixedContentBlocked('http://example.com')).toBe(false);
   });
 });

@@ -30,38 +30,22 @@ export function normalizeServerUrl(input: string): string {
   return `${parsed.protocol}//${parsed.host}`;
 }
 
-/**
- * True when the app origin is https but the target server is http — the browser will block this
- * as mixed content. Always false inside the native Capacitor shell: its WebView reports a synthetic
- * `https://localhost` origin, but CapacitorHttp routes these calls through native networking (not
- * the WebView's fetch/XHR), which was never subject to the browser's mixed-content policy in the
- * first place — so there's nothing to route around, and the (web-only) /api/proxy below isn't even
- * reachable from inside the native shell.
- */
-export function isMixedContentBlocked(serverUrl: string): boolean {
-  if (Capacitor.isNativePlatform()) return false;
-  return typeof window !== 'undefined' && window.location.protocol === 'https:' && serverUrl.startsWith('http://');
-}
-
 /** True when this page itself is served over https (and isn't the native shell) — most IPTV panels
- *  are http-only, so connecting from a real browser tab here would hit mixed-content blocking. */
+ *  are http-only, so a direct call from a real https browser tab would be blocked as mixed content.
+ *  There's no server-side workaround for this — even a JSON-API proxy can't cover video playback
+ *  (streaming every byte of every stream through a serverless function isn't reasonable), so a
+ *  proxy would only get you a working login and then broken playback. Run the app over http
+ *  instead (locally, or self-hosted), or use the native Android/iOS app, whose WebView routes API
+ *  calls through native networking (CapacitorHttp) rather than the page's own fetch/XHR, so the
+ *  page's own origin scheme doesn't matter there. */
 export function isRunningOverHttps(): boolean {
   if (Capacitor.isNativePlatform()) return false;
   return typeof window !== 'undefined' && window.location.protocol === 'https:';
 }
 
-/**
- * Resolves where an HttpClient call to player_api.php should actually go: directly to
- * the server normally, or through our own same-origin /api/proxy (which forwards it
- * server-side) when this page is https and the server is http — mixed content would
- * otherwise block that call before it ever left the browser. Merge the returned
- * `params` straight into the request; the proxy only ever forwards to player_api.php.
- */
-export function playerApiRequest(serverUrl: string, params: Record<string, string>): { url: string; params: Record<string, string> } {
-  if (isMixedContentBlocked(serverUrl)) {
-    return { url: '/api/proxy', params: { ...params, target: serverUrl } };
-  }
-  return { url: `${serverUrl}/player_api.php`, params };
+/** The player_api.php URL for a given server — always called directly from the browser, no proxy. */
+export function playerApiUrl(serverUrl: string): string {
+  return `${serverUrl}/player_api.php`;
 }
 
 export function joinUrl(base: string, ...parts: Array<string | number>): string {

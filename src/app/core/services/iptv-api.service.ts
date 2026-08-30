@@ -7,7 +7,7 @@ import { ShortEpgResponse } from '../models/epg.models';
 import { LiveStream } from '../models/live.models';
 import { SeriesInfo, SeriesListItem } from '../models/series.models';
 import { VodInfo, VodStream } from '../models/vod.models';
-import { playerApiRequest } from '../utils/url.util';
+import { playerApiUrl } from '../utils/url.util';
 import { AuthService } from './auth.service';
 import { CacheService } from './cache.service';
 
@@ -97,13 +97,9 @@ export class IptvApiService {
 
   private action<T>(action: string, extraParams: Record<string, string> = {}): Observable<T> {
     const creds = this.requireCredentials();
-    const { url, params } = playerApiRequest(creds.serverUrl, {
-      username: creds.username,
-      password: creds.password,
-      action,
-      ...extraParams,
+    return this.http.get<T>(playerApiUrl(creds.serverUrl), {
+      params: { username: creds.username, password: creds.password, action, ...extraParams },
     });
-    return this.http.get<T>(url, { params });
   }
 
   private requireCredentials(): IptvCredentials {
